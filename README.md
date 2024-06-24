@@ -14,6 +14,8 @@ The experiment results from the thesis can be found in /experimental_results und
 Graphics used in the thesis can be found in /Graphics  
 
 ## Dependencies
+**TODO: UPDATE**
+
 The code contained in this repository requires the following dependencies for reproducing the experiments:
 - matplotlib==3.5.2
 - networkx==2.8.8
