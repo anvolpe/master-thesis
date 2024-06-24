@@ -2,6 +2,7 @@
 Experiment/Code for reproduction of results for "Evaluating the Performance of Optimizers on the Loss Landscape of Quantum Neural Networks" research project by Serhat Ceri, Jonathan Klenk, Alina Mürwald, Anna Volpe (2024).
 
 **TODO**: 
+
 Files with names starting with ``victor_thesis_`` are the core of the thesis. All other files were originally made for  
 Alexander Mandl, Johanna Barzen, Frank Leymann, Daniel Vietz. On Reducing the Amount of Samples Required for Training of QNNs: Constraints on the Linear Structure of the Training Data. [arXiv:2309.13711 [quant-ph]](https://arxiv.org/abs/2309.13711)
 
