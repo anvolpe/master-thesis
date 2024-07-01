@@ -230,8 +230,11 @@ def run_single_experiment_batch(
         SC = calc_scalar_curvature(landscape)
         SC_metrics.append(process_sc_metrics(SC))
         del SC
-        del landscape
-        gc.collect()
+        del landscape # weglassen
+        # TODO: def objective basierend auf landscape
+        # TODO: optimize.minimize(...) Aufruf für einen Optimierer + Options (Spezifikationen)
+        # TODO: Zeit messen + Zeit speichern
+        gc.collect() # was machst das?
         
     metrics = []
     metrics.append(TV_arr)
@@ -239,6 +242,7 @@ def run_single_experiment_batch(
     metrics.append(IGSD_arr)
     metrics.append(SC_metrics)
     process_and_store_metrics(metrics, len(data_batch), conf_id, experiment_id)
+    # TODO: speichern: Optimierer, Zeiten, Spezifikation
     now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     print(f"[{now}] Finished run: {conf_id}")
 
@@ -301,6 +305,7 @@ def run_full_experiment():
     # cpu_count()
     with ProcessPoolExecutor(cpu_count()) as exe:
         # iterate over  type of training data: 1=random, 2=orthogonal, 3=linearly dependent in H_x, 4= variable schmidt rank
+        # TODO: nur über Schmidt Rang? 
         for type_of_data in range(1, 5, 1):
             num_data_points_row = []
             # iterate over training data size 1 to 4
