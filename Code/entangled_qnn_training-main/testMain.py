@@ -12,6 +12,7 @@ from victor_thesis_experiments_main import *
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 import os
+import pandas as pd
 
 def generate_and_save_testLandscape():
     print("####### Generate and Save test landscape")
@@ -88,11 +89,9 @@ def generate_and_save_testLandscape():
     # save landscape as JSON file
     os.makedirs("experimental_results/landscapes", exist_ok=True)
     start = time.time()
-    with open("experimental_results/landscapes/testLandscape.json", "w") as f:
-        json.dump(landscape.tolist(), f)
-    f.close()
+    np.save("experimental_results/landscapes/testLandscape.npy", landscape)
     t = time.time()-start
-    print("time [write JSON file] (sec): ", np.round(t,2))
+    print("time [write npy file] (sec): ", np.round(t,2))
 
     gc.collect() # garbage collector
         
@@ -111,13 +110,28 @@ def run_single_optimizer_experiment():
     # TODO: optimize.minimize(...) Aufruf für einen Optimierer + Options (Spezifikationen)
     # TODO: Zeit messen + Zeit speichern
 
-    # load test loss landscape from jason file
+    # load test loss landscape from jason file: 350mb
     start = time.time()
     with open("experimental_results/landscapes/testLandscape.json") as f:
         landscape = np.array(json.load(f))
     f.close()
     t = time.time()-start
     print("time [load JSON file] (sec): ", np.round(t,2))
+
+    # test with npy file instead of json: 130mb
+    start = time.time()
+    np.savez_compressed("experimental_results/landscapes/testLandscape.npz", landscape)
+    t = time.time()-start
+    print("time [save npz file] (sec): ", np.round(t,2))
+
+    start = time.time()
+    landscape = np.load("experimental_results/landscapes/testLandscape.npz")['arr_0']
+    t = time.time()-start
+    print("time [load npz file] (sec): ", np.round(t,2))
+
+    print(landscape.shape)
+
+    # does not work: pandas Datafram save_csv (needs 2D), numpy.savetxt (needs 2D), ....???
 
 def testJSONlandscape():
     landscape = np.zeros((16,16,16,16,16,16))
@@ -140,5 +154,6 @@ def testJSONlandscape():
 if __name__ == "__main__":
     #single_test_run()
     #run_full_experiment()
-    generate_and_save_testLandscape()
+    #generate_and_save_testLandscape()
+    run_single_optimizer_experiment()
     
