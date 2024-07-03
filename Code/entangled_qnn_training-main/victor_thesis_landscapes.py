@@ -80,15 +80,15 @@ def generate_loss_landscape(grid_size, dimensions, inputs, U, qnn):
     for idx, _ in np.ndenumerate(landscape):  
         param_list = []      
         # generate param array
-        print("idx", idx)
-        for dimension in idx: # TODO: Wie genau sieht idx aus???
-            param_list.append(param_vals[dimension]) # Gitterpunkte für jede Dimension --> aka x Werte? für objective(x)??
+        #print("idx", idx)
+        for dimension in idx: # idx = [a,b,c,d,e,f] wobei alle zwischen 0 und 15 sind --> index eines Gitterpunkts, welcher Parameter für qnn is
+            param_list.append(param_vals[dimension]) 
         # calculate cost function
-        param_list = np.asarray(param_list)
-        print("param_vals", param_vals)
-        print("param_list", param_list)
+        param_list = np.asarray(param_list) # Gitterpunkt x für objective(x)
+        #print("param_vals", param_vals)
+        #print("param_list", param_list)
         qnn.params = torch.tensor(param_list, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape)
-        print("qnn.params",qnn.params)
+        #print("qnn.params",qnn.params)
         cost = cost_func(inputs, y_true, qnn, device="cpu") 
         landscape[idx]=cost.item()
     return landscape
