@@ -19,11 +19,11 @@ from scipy.optimize import minimize
 
 def optimizer_experiment():
     # specifications of qnn
-    num_layers = 1
-    num_qubits = 2
+    num_layers = 1 # 2??
+    num_qubits = 2 # 1??
     dimensions = 6 # geht nicht: alles außer 6
-    type_of_data = 1 # random data
-    deg_of_entanglement = 4 # high, (low = 1)
+    type_of_data = 4 # random data
+    deg_of_entanglement = 1 # high, (low = 1)
     num_data_points = 1 # low
 
     qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
@@ -54,7 +54,7 @@ def optimizer_experiment():
     # 
     optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
     results = {}
-    initial_param_values = np.random.uniform(-np.pi, np.pi, size=dimensions)
+    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions)
     for opt in optimizers:
         start = time.time()
         res = minimize(objective, initial_param_values, method=opt,
