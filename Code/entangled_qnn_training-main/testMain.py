@@ -1,4 +1,5 @@
 import gc
+import json
 import time
 from datetime import datetime
 from qnns.cuda_qnn import CudaPennylane
@@ -12,16 +13,16 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 import os
 
-def single_test_run():
-    print("single_test_run")
+def generate_and_save_testLandscape():
+    print("####### Generate and Save test landscape")
     num_layers = 1
     num_qubits = 2
-    num_unitaries = 1 # was 5
-    num_tries = 1 # was 5
+    #num_unitaries = 1 # was 5
+    #num_tries = 1 # was 5
     grid_size = 16
-    dimensions = 6
+    dimensions = 6 # geht nicht: alles außer 6
     type_of_data = 1 # random data
-    deg_of_entanglement = 1 # low, (high = 4)
+    deg_of_entanglement = 4 # low, (high = 4)
     num_data_points = 1 # low
 
     # generate an experiment id (based on time) to identify which results and configs belong to which experiment run
@@ -43,11 +44,10 @@ def single_test_run():
     )
     # create directories for results and configs
 
-    os.makedirs("experimental_results/configs", exist_ok=True)
-    os.makedirs("experimental_results/results", exist_ok=True)
+    #os.makedirs("experimental_results/configs", exist_ok=True)
+    #os.makedirs("experimental_results/results", exist_ok=True)
     # generate a U3 ansatz containing 2 layers -> 6 params
     qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
-    print("single_test_run")
     #unitaries = []
     # [type_of_data][num_data_points][deg_of_entanglement][id_unitary][id_try]
     #configurations = []
@@ -58,14 +58,12 @@ def single_test_run():
             dtype=torch.complex128,
             device="cpu",
         )
-    print("single_test_run")
     data_points = generate_data_points(
         type_of_data,
         deg_of_entanglement,
         num_data_points,
         unitary, num_qubits
     )
-    print("single_test_run")
     #start = time.time()
     # generate configurations (5 datapoint sets = 5 runs per config)
     conf_id = 0
@@ -74,19 +72,27 @@ def single_test_run():
     FD_arr = []
     IGSD_arr = []
     SC_metrics = []
-    print("before landscape")
+    start = time.time()
     landscape = generate_loss_landscape(grid_size, dimensions, data_points, unitary, qnn)
-    print("after landscape")
+    t = time.time()-start
+    print("time [generate loss landscape] (sec): ", np.round(t,2))
+    start = time.time()
     TV_arr.append(calc_total_variation(landscape))
     FD_arr.append(calc_fourier_density(landscape))
     IGSD_arr.append(calc_IGSD(landscape))
     SC = calc_scalar_curvature(landscape)
     SC_metrics.append(process_sc_metrics(SC))
+    t = time.time()-start
+    print("time [calc metrics] (sec): ", np.round(t,2))
     del SC
-    # del landscape # weglassen?
-    # TODO: def objective basierend auf landscape
-    # TODO: optimize.minimize(...) Aufruf für einen Optimierer + Options (Spezifikationen)
-    # TODO: Zeit messen + Zeit speichern
+    # save landscape as JSON file
+    os.makedirs("experimental_results/landscapes", exist_ok=True)
+    start = time.time()
+    with open("experimental_results/landscapes/testLandscape.json", "w") as f:
+        json.dump(landscape.tolist(), f)
+    f.close()
+    t = time.time()-start
+    print("time [write JSON file] (sec): ", np.round(t,2))
 
     gc.collect() # garbage collector
         
@@ -100,18 +106,39 @@ def single_test_run():
     now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     print(f"[{now}] Finished run: {conf_id}")
 
+def run_single_optimizer_experiment():
+    # TODO: def objective basierend auf landscape
+    # TODO: optimize.minimize(...) Aufruf für einen Optimierer + Options (Spezifikationen)
+    # TODO: Zeit messen + Zeit speichern
 
-def run_experiment():
+    # load test loss landscape from jason file
     start = time.time()
-    with ProcessPoolExecutor(cpu_count()) as exe:
-        exe.submit(single_test_run)
-    end = time.time()
-    print(f"total runtime run_experiment: {np.round(end-start,2)}s")
+    with open("experimental_results/landscapes/testLandscape.json") as f:
+        landscape = np.array(json.load(f))
+    f.close()
+    t = time.time()-start
+    print("time [load JSON file] (sec): ", np.round(t,2))
 
+def testJSONlandscape():
+    landscape = np.zeros((16,16,16,16,16,16))
+    os.makedirs("experimental_results/landscapes", exist_ok=True)
+    start = time.time()
+    with open("experimental_results/landscapes/testLandscape.json", "w") as f:
+        json.dump(landscape.tolist(), f)
+    f.close()
+    t = time.time()-start
+    print("time write JSON (sec): ", np.round(t,2))
+    del landscape
+    start = time.time()
+    with open("experimental_results/landscapes/testLandscape.json") as f:
+        landscape = np.array(json.load(f))
+    f.close()
+    t = time.time()-start
+    print("time load JSON (sec): ", np.round(t,2))
+    print(landscape.shape)
 
 if __name__ == "__main__":
-    # one thread per core
-    #torch.set_num_threads(1)
-    #torch.multiprocessing.set_sharing_strategy("file_system")
-    run_experiment()
+    #single_test_run()
     #run_full_experiment()
+    generate_and_save_testLandscape()
+    
