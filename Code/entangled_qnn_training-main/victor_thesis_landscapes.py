@@ -67,7 +67,7 @@ def generate_loss_landscape(grid_size, dimensions, inputs, U, qnn):
     step_size = lanscape_limit / grid_size
     #step_size = lanscape_limit / (grid_size-1) # <- more evenly spread samples
     for step in range(grid_size):
-        param_vals.append(step*step_size)
+        param_vals.append(step*step_size) # TODO: was ist param_vals??????
     # generate landscape
     landscape_shape = []
     # 5, 9 [9][9][9][9][9]
@@ -76,14 +76,19 @@ def generate_loss_landscape(grid_size, dimensions, inputs, U, qnn):
     landscape_shape = tuple(landscape_shape)
     landscape = np.empty(landscape_shape)
     # for every point
+    print("param_vals", param_vals)
     for idx, _ in np.ndenumerate(landscape):  
         param_list = []      
         # generate param array
-        for dimension in idx:
-            param_list.append(param_vals[dimension])
+        print("idx", idx)
+        for dimension in idx: # TODO: Wie genau sieht idx aus???
+            param_list.append(param_vals[dimension]) # Gitterpunkte für jede Dimension --> aka x Werte? für objective(x)??
         # calculate cost function
         param_list = np.asarray(param_list)
+        print("param_vals", param_vals)
+        print("param_list", param_list)
         qnn.params = torch.tensor(param_list, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape)
+        print("qnn.params",qnn.params)
         cost = cost_func(inputs, y_true, qnn, device="cpu") 
         landscape[idx]=cost.item()
     return landscape
