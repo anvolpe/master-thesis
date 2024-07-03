@@ -200,7 +200,21 @@ def generate_data_points(type_of_data, schmidt_rank, num_data_points, U, num_qub
         (raw_input.shape[0], int(raw_input.shape[1] / U.shape[0]), U.shape[0])
     ).permute(0, 2, 1)
 
+# alle Optimierer für alle bestimmte Spezifikation + objective function laufen lassen + alles speichern (???)
+def run_optimizer_experiments(landscape, grid_size, conf_id, experiment_id):
+    # TODO: def objective
+    # TODO: Schleife über alle Optimierer & deren Spezifikationen
+    # TODO: 
 
+    def objective(x):
+        return x
+
+
+# TODO: wenn ich's richtig verstanden hab, müssen wir nur hier was ändern
+# eventuell direkt in dieser Methode oder (besser?) eine neue Methode schreiben, 
+# die dann die generierte Loss Landscape minimiert & alles in der richtigen Datei speichert
+# In dieser Methode: alle optimierer & Spezifikations Kombis nacheinander durchmachen 
+# --> Nur eine handvoll Loss Landscape untersuchen?
 def run_single_experiment_batch(
     grid_size, dimensions, data_batch, U, qnn, conf_id, experiment_id
 ):
@@ -230,8 +244,12 @@ def run_single_experiment_batch(
         SC = calc_scalar_curvature(landscape)
         SC_metrics.append(process_sc_metrics(SC))
         del SC
-        del landscape
-        gc.collect()
+        # del landscape # weglassen?
+        # TODO: def objective basierend auf landscape
+        # TODO: optimize.minimize(...) Aufruf für einen Optimierer + Options (Spezifikationen)
+        # TODO: Zeit messen + Zeit speichern
+
+        gc.collect() # garbage collector
         
     metrics = []
     metrics.append(TV_arr)
@@ -239,6 +257,7 @@ def run_single_experiment_batch(
     metrics.append(IGSD_arr)
     metrics.append(SC_metrics)
     process_and_store_metrics(metrics, len(data_batch), conf_id, experiment_id)
+    # TODO: speichern: Optimierer, Zeiten, Spezifikation
     now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     print(f"[{now}] Finished run: {conf_id}")
 
@@ -280,7 +299,7 @@ def run_full_experiment():
     os.makedirs("experimental_results/configs", exist_ok=True)
     os.makedirs("experimental_results/results", exist_ok=True)
     # generate a U3 ansatz containing 2 layers -> 6 params
-    qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu")
+    qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") # TODO: läuft nicht wegen qml.matrix (wire_order is required)
 
     unitaries = []
     # [type_of_data][num_data_points][deg_of_entanglement][id_unitary][id_try]
@@ -301,12 +320,14 @@ def run_full_experiment():
     # cpu_count()
     with ProcessPoolExecutor(cpu_count()) as exe:
         # iterate over  type of training data: 1=random, 2=orthogonal, 3=linearly dependent in H_x, 4= variable schmidt rank
+        # TODO: Wie können wir die richtigen Trainingsdaten auswählen (es sind bestimmt nicht alle nötig)? nur über Schmidt Rang? 
         for type_of_data in range(1, 5, 1):
             num_data_points_row = []
             # iterate over training data size 1 to 4
             for num_data_points in range(1, 5, 1):
                 deg_of_entanglement_row = []
-                # iterate over degree of entanglement 1 to 4
+                # iterate over degree of entanglement 1 to 4 
+                # hier einfach nur die trainingsdaten mit hohem degree of entanglement auswählen?
                 for deg_of_entanglement in range(1, 5, 1):
                     # iterate over unitaries
                     unitary_row = []
@@ -324,7 +345,7 @@ def run_full_experiment():
                             data_batch_for_unitary.append(data_points)
                         # run this per configuration unitary (5 sets of data -> take average and stdv...)
                         exe.submit(
-                            run_single_experiment_batch,
+                            run_single_experiment_batch, 
                             grid_size,
                             dimensions,
                             data_batch_for_unitary,
