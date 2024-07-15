@@ -19,33 +19,15 @@ import pandas as pd
 from scipy.optimize import minimize
 import re
 
+num_layers = 1
+num_qubits = 2
+dimensions = 6
 
-
-def optimizer_experiment():
+def single_optimizer_experiment(conf_id, data_type, num_data_points, s_rank, unitary, data_points):
     # specifications of qnn
-    num_layers = 1 # 2??
-    num_qubits = 2 # 1??
-    dimensions = 6 # geht nicht: alles außer 6
-    type_of_data = 4 # random data
-    deg_of_entanglement = 1 # high, (low = 1)
-    num_data_points = 1 # low
 
     qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
     
-    # generate a random unitary with num_qubits qubits (why are they the same?)
-    unitary = torch.tensor(
-            np.array(random_unitary_matrix(num_qubits)),
-            dtype=torch.complex128,
-            device="cpu",
-        )
-    data_points = generate_data_points(
-        type_of_data,
-        deg_of_entanglement,
-        num_data_points,
-        unitary, num_qubits
-    )
-    print(data_points.shape)
-    print(data_points)
     expected_output = torch.matmul(unitary, data_points)
     y_true = expected_output.conj()
     
@@ -54,8 +36,6 @@ def optimizer_experiment():
         qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
         cost = cost_func(data_points, y_true, qnn, device="cpu") 
         return torch.tensor(cost.item())
-    
-    
     optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP', sgd, adam, rmsprop]
     #optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
     results = {}
@@ -79,9 +59,10 @@ def optimizer_experiment():
         print(res)
         print(f"Duration: {duration}s\n")
 
-    print("Results:", results)
+    #print("Results:", results)
+    print("config", conf_id)
 
-    """with open('experimental_results/results/optimization_results.csv', mode='w') as file:
+"""     with open('experimental_results/results/optimization_results.csv', mode='w') as file:
         writer = csv.writer(file)
         writer.writerow(["Optimizer", "Result", "Duration"])
 
@@ -134,4 +115,8 @@ def run_all_optimizer_experiments():
 
 
 if __name__ == "__main__":
-    optimizer_experiment()
+    #single_optimizer_experiment(1, "random",1,1,[],[])
+    start = time.time()
+    run_all_optimizer_experiments()
+    print(f"total runtime: {np.round((time.time()-start)/60,2)}min") 
+    # total runtime: 17.59min, max_iter: 10000, optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
