@@ -171,3 +171,4 @@ if __name__ == "__main__":
     run_all_optimizer_experiments()
     print(f"total runtime: {np.round((time.time()-start)/60,2)}min") 
     # total runtime: 17.59min, max_iter: 10000, optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
+    # total runtime: ca 40 min, max_iter = 1000, optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP', sgd, adam, rmsprop]
