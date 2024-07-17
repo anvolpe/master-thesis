@@ -16,7 +16,7 @@ from sgd_for_scipy import *
 from jax import jacrev
 import os
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import minimize, dual_annealing
 import re
 
 num_layers = 1
