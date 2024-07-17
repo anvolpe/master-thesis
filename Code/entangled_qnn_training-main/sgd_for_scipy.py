@@ -7,6 +7,10 @@ from scipy.optimize import approx_fprime
 """
     Original by jcmgray: https://gist.github.com/jcmgray/e0ab3458a252114beecb1f4b631e19ab
 """
+
+# TODO: funktionieren alle nicht richtig (siehe conf_0_opt.json: 
+# fun-Wert ist bei allen 3 bei jedem Durchlauf 0.795, sollte aber näher an 0.00... sein)
+
 def sgd(
     fun,
     x0,
@@ -24,22 +28,32 @@ def sgd(
 
     Adapted from ``autograd/misc/optimizers.py``.
     """
-    #print(type(x0))
-    #x = x0
-    #velocity = np.zeros_like(x)
-    x = torch.tensor(x0)
-    velocity = torch.zeros_like(x)
+    
+    x = x0
+    velocity = np.zeros_like(x)
+    #x = torch.tensor(x0)
+    #velocity = torch.zeros_like(x)
+    print("START")
+    print("x",x)
+    print("fun", fun(x))
+    print("jac", approx_fprime(x,fun))
 
     for i in range(startiter, startiter + maxiter):
         #g = jac(x)
-        #g = approx_fprime(x,fun) # TODO: Besser machen! Braucht sehr lang. Mit torch.tensor irgendwie die Jacobi bestimmen/approx?
-        g = torch.autograd.functional.jacobian(fun,x)
+        g = approx_fprime(x,fun) # TODO: Besser machen! Braucht sehr lang. Mit torch.tensor irgendwie die Jacobi bestimmen/approx?
+        #g = torch.autograd.functional.jacobian(fun,x)
         if callback and callback(x):
             break
 
-        velocity = torch.mul(mass,velocity) - torch.mul((1.0 - mass),g)
-        x = x + torch.mul(learning_rate,velocity)
+        #velocity = torch.mul(mass,velocity) - torch.mul((1.0 - mass),g)
+        velocity = mass*velocity-(1.0-mass)*g
+        #x = x + torch.mul(learning_rate,velocity)
+        x = x+learning_rate*velocity
 
+    print("END")
+    print("x",x)
+    print("fun", fun(x))
+    print("jac", approx_fprime(x,fun))
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
 
@@ -62,19 +76,28 @@ def rmsprop(
 
     Adapted from ``autograd/misc/optimizers.py``.
     """
-    x = torch.tensor(x0)
-    #velocity = torch.zeros_like(x)
-    avg_sq_grad = torch.ones_like(x)
+    #x = torch.tensor(x0)
+    x = x0
+    #avg_sq_grad = torch.ones_like(x)
+    avg_sq_grad = np.ones_like(x)
+    print("START")
+    print("x",x)
+    print("fun", fun(x))
+    print("jac", approx_fprime(x,fun))
 
     for i in range(startiter, startiter + maxiter):
-        g = torch.autograd.functional.jacobian(fun,x)
-
+        #g = torch.autograd.functional.jacobian(fun,x)
+        g = approx_fprime(x,fun)    
         if callback and callback(x):
             break
 
         avg_sq_grad = avg_sq_grad * gamma + g**2 * (1 - gamma)
         x = x - learning_rate * g / (np.sqrt(avg_sq_grad) + eps)
 
+    print("END")
+    print("x",x)
+    print("fun", fun(x))
+    print("jac", approx_fprime(x,fun))
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
 
@@ -98,13 +121,24 @@ def adam(
 
     Adapted from ``autograd/misc/optimizers.py``.
     """
-    x = torch.tensor(x0)
-    m = torch.zeros_like(x)
-    v = torch.zeros_like(x)
+    x = x0
+    #x = torch.tensor(x0)
+    #m = torch.zeros_like(x)
+    m = np.zeros_like(x)
+    #v = torch.zeros_like(x)
+    v = np.zeros_like(x)
+    print("START")
+    print("x",x)
+    print("fun", fun(x))
+    print("jac", approx_fprime(x,fun))
 
     for i in range(startiter, startiter + maxiter):
-        g = torch.autograd.functional.jacobian(fun,x)
-
+        #print("Iteration",i)
+        #g = torch.autograd.functional.jacobian(fun,x)
+        g = approx_fprime(x,fun)
+        #print("Jacobian",g)
+        #print("x", x)
+        #print("fun(x)", fun(x))
         if callback and callback(x):
             break
 
@@ -113,6 +147,9 @@ def adam(
         mhat = m / (1 - beta1**(i + 1))  # bias correction.
         vhat = v / (1 - beta2**(i + 1))
         x = x - learning_rate * mhat / (np.sqrt(vhat) + eps)
-
+    print("END")
+    print("x",x)
+    print("fun", fun(x))
+    print("jac", approx_fprime(x,fun))
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
