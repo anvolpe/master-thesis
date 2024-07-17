@@ -24,7 +24,8 @@ num_qubits = 2
 dimensions = 6
 max_iters = [100,500,1000]
 tols = [1e-5, 1e-10]
-bounds = [(0,2*np.pi)*dimensions]
+#bounds = [(0,2*np.pi)*dimensions]
+bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 
 def nelder_mead_experiment(objective,initial_param_values):
