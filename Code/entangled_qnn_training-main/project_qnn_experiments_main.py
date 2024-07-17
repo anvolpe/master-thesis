@@ -142,7 +142,24 @@ def sgd_experiment(objective,initial_param_values,opt):
                 run_n += 1
     return results
 
-
+# gibt nicht direkt sowas wie ftol und eps
+def dual_annealing_experiment(objective,bounds):
+    results = {}
+    run_n = 0
+    for max_iter in max_iters:
+        #for tol in tols:
+        #for catol in tols:
+                start = time.time()
+                res = dual_annealing(objective, bounds, maxiter=max_iter)
+                duration = time.time() - start
+                # fill results dict
+                # specifications of this optimizer run
+                results[run_n] = {"maxiter": max_iter, "duration":duration}
+                # result info
+                for attribute in res.keys():
+                    results[run_n][attribute] = str(res[attribute])
+                run_n += 1
+    return results
 
 def single_config_experiments(conf_id, data_type, num_data_points, s_rank, unitary, data_points):
     # prepare csv file for experiment results
