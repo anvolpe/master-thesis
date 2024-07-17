@@ -24,7 +24,7 @@ num_qubits = 2
 dimensions = 6
 max_iters = [100,500,1000]
 tols = [1e-5, 1e-10]
-bounds = []
+bounds = [(0,2*np.pi)*dimensions]
 learning_rates = [0.01, 0.001, 0.0001]
 
 def nelder_mead_experiment(objective,initial_param_values):
@@ -143,7 +143,7 @@ def sgd_experiment(objective,initial_param_values,opt):
     return results
 
 # gibt nicht direkt sowas wie ftol und eps
-def dual_annealing_experiment(objective,bounds):
+def dual_annealing_experiment(objective,initial_param_values):
     results = {}
     run_n = 0
     for max_iter in max_iters:
@@ -161,6 +161,7 @@ def dual_annealing_experiment(objective,bounds):
                 run_n += 1
     return results
 
+# nicht mehr nötig --> LÖSCHEN?
 def single_config_experiments(conf_id, data_type, num_data_points, s_rank, unitary, data_points):
     # prepare csv file for experiment results
     os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
@@ -192,6 +193,12 @@ def single_config_experiments(conf_id, data_type, num_data_points, s_rank, unita
 
         
 def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_points, s_rank, unitary, data_points):
+    '''
+    Run all optimizer experiments for a single config & databatch combination
+
+    Return:
+        dict containing all specifications of optimizers & results
+    '''
     result_dict = {}
     data_points_string = (
         np.array2string(data_points.numpy(), separator=",")
@@ -218,7 +225,7 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
 
     # run optimizer experiments
     sgd_optimizers = [sgd, rmsprop, adam]
-    optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment]
+    optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment]
 
     # TODO: ProcessPoolExecutor: funktioniert nicht, weil pickle verwendet wird und objective eine lokal definierte Funktion ist 
     # (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
@@ -244,6 +251,12 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
     
 
 def run_all_optimizer_experiments():
+    '''
+    Read all configurations of qnn and databatches from configurations_16_6_4_10_13_3_14.txt and run optimizer experiments
+    for every configuration & databatch combination
+    Creates json file for every configuration that saves all specifications for configuration and optimizer results.
+    File is saved as "experimental_results/results/optimizer_results/conf_[conf_id]_opt.json"
+    '''
     filename = "Code/entangled_qnn_training-main/experimental_results/configs/configurations_16_6_4_10_13_3_14.txt"
     file = open(filename, 'r')
     Lines = file.readlines()
@@ -270,6 +283,7 @@ def run_all_optimizer_experiments():
             n = 0
             #databatch = databatches[n]
             #print(len(databatches))
+            start = time.time()
             for i in range(len(databatches)): 
                 data_points = databatches[i]  
                 dict = single_optimizer_experiment(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
@@ -277,6 +291,7 @@ def run_all_optimizer_experiments():
                 result_dict[databatch_key] = dict
                 #print(conf_id, data_type, num_data_points, s_rank)
             #write results to json file
+            print(f"config {conf_id}: {np.round((time.time()-start)/60,2)}min")
             os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
             file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_opt.json", mode="w")
             json.dump(result_dict, file)
@@ -298,7 +313,10 @@ def run_all_optimizer_experiments():
                 #print(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4)))
                 databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) #data_points: 1x4x4 tensor
 
-def test_experiment():
+def test_several_optimizers():
+    '''
+    Test function for conf_id 0 and data_batch_0 for several optimizers
+    '''
     # setup qnn configuration
     conf_id = 0
     data_type = "random" # random, orthogonal, non_lin_ind, var_s_rank
@@ -390,7 +408,11 @@ def test_experiment():
     file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_test.json", mode="w")
     json.dump(result_dict, file)
 
-def test():
+def test_single_optimizer():
+    '''
+    Test function for conf_id 0 and data_batch_0 for one optimizer.
+    '''
+
     # setup qnn configuration
     conf_id = 0
     data_type = "random" # random, orthogonal, non_lin_ind, var_s_rank
@@ -443,9 +465,10 @@ if __name__ == "__main__":
     # total runtime: ca 40 min, max_iter = 1000, optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP', sgd, adam, rmsprop]
     
     start = time.time()
-    #run_all_optimizer_experiments()
-    test_experiment()
-    #test()
+    print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
+    run_all_optimizer_experiments()
+    #test_several_optimizers()
+    #test_single_optimizer()
     print(f"total runtime: {np.round((time.time()-start)/60,2)}min") 
     # die ersten 92 configs: 2h runtime
 

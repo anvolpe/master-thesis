@@ -33,10 +33,10 @@ def sgd(
     velocity = np.zeros_like(x)
     #x = torch.tensor(x0)
     #velocity = torch.zeros_like(x)
-    print("START")
-    print("x",x)
-    print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))
+    #print("START")
+    #print("x",x)
+    #print("fun", fun(x))
+    #print("jac", approx_fprime(x,fun))
 
     for i in range(startiter, startiter + maxiter):
         #g = jac(x)
@@ -50,10 +50,10 @@ def sgd(
         #x = x + torch.mul(learning_rate,velocity)
         x = x+learning_rate*velocity
 
-    print("END")
-    print("x",x)
-    print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))
+    #print("END")
+    #print("x",x)
+    #print("fun", fun(x))
+    #print("jac", approx_fprime(x,fun))
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
 
@@ -80,10 +80,10 @@ def rmsprop(
     x = x0
     #avg_sq_grad = torch.ones_like(x)
     avg_sq_grad = np.ones_like(x)
-    print("START")
+    '''print("START")
     print("x",x)
     print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))
+    print("jac", approx_fprime(x,fun))'''
 
     for i in range(startiter, startiter + maxiter):
         #g = torch.autograd.functional.jacobian(fun,x)
@@ -94,10 +94,10 @@ def rmsprop(
         avg_sq_grad = avg_sq_grad * gamma + g**2 * (1 - gamma)
         x = x - learning_rate * g / (np.sqrt(avg_sq_grad) + eps)
 
-    print("END")
+    '''print("END")
     print("x",x)
     print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))
+    print("jac", approx_fprime(x,fun))'''
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
 
@@ -127,10 +127,10 @@ def adam(
     m = np.zeros_like(x)
     #v = torch.zeros_like(x)
     v = np.zeros_like(x)
-    print("START")
+    '''print("START")
     print("x",x)
     print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))
+    print("jac", approx_fprime(x,fun))'''
 
     for i in range(startiter, startiter + maxiter):
         #print("Iteration",i)
@@ -147,9 +147,9 @@ def adam(
         mhat = m / (1 - beta1**(i + 1))  # bias correction.
         vhat = v / (1 - beta2**(i + 1))
         x = x - learning_rate * mhat / (np.sqrt(vhat) + eps)
-    print("END")
+    '''print("END")
     print("x",x)
     print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))
+    print("jac", approx_fprime(x,fun))'''
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
