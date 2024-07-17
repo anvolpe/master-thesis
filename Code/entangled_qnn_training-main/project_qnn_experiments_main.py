@@ -16,7 +16,7 @@ from sgd_for_scipy import *
 from jax import jacrev
 import os
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import minimize, dual_annealing
 import re
 
 num_layers = 1
@@ -24,7 +24,7 @@ num_qubits = 2
 dimensions = 6
 max_iters = [100,500,1000]
 tols = [1e-5, 1e-10]
-bounds = []
+bounds = [(0,2*np.pi)*dimensions]
 learning_rates = [0.01, 0.001, 0.0001]
 
 def nelder_mead_experiment(objective,initial_param_values):
@@ -142,6 +142,24 @@ def sgd_experiment(objective,initial_param_values,opt):
                 run_n += 1
     return results
 
+# gibt nicht direkt sowas wie ftol und eps
+def dual_annealing_experiment(objective,bounds):
+    results = {}
+    run_n = 0
+    for max_iter in max_iters:
+        #for tol in tols:
+        #for catol in tols:
+                start = time.time()
+                res = dual_annealing(objective, bounds, maxiter=max_iter)
+                duration = time.time() - start
+                # fill results dict
+                # specifications of this optimizer run
+                results[run_n] = {"maxiter": max_iter, "duration":duration}
+                # result info
+                for attribute in res.keys():
+                    results[run_n][attribute] = str(res[attribute])
+                run_n += 1
+    return results
 
 
 def single_config_experiments(conf_id, data_type, num_data_points, s_rank, unitary, data_points):
@@ -216,6 +234,8 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
     result_dict["RMSPROP"] = result
     result = sgd_experiment(objective,initial_param_values_tensor,adam)
     result_dict["ADAM"] = result
+    result = dual_annealing_experiment(objective,bounds)
+    result_dict["Dual-Annealing"] = result
 
     return result_dict
 
@@ -337,6 +357,8 @@ def test_experiment():
     result_dict[var]["RMSPROP"] = result
     result = sgd_experiment(objective,initial_param_values_tensor,adam)
     result_dict[var]["ADAM"] = result
+    result = dual_annealing_experiment(objective, bounds)
+    result_dict[var]["Dual-Annealing"] = result
 
     
 
