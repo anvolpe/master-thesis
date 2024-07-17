@@ -200,7 +200,6 @@ def generate_data_points(type_of_data, schmidt_rank, num_data_points, U, num_qub
         (raw_input.shape[0], int(raw_input.shape[1] / U.shape[0]), U.shape[0])
     ).permute(0, 2, 1)
 
-
 def run_single_experiment_batch(
     grid_size, dimensions, data_batch, U, qnn, conf_id, experiment_id
 ):
@@ -230,8 +229,8 @@ def run_single_experiment_batch(
         SC = calc_scalar_curvature(landscape)
         SC_metrics.append(process_sc_metrics(SC))
         del SC
-        del landscape
-        gc.collect()
+        del landscape 
+        gc.collect() # garbage collector
         
     metrics = []
     metrics.append(TV_arr)
@@ -280,7 +279,7 @@ def run_full_experiment():
     os.makedirs("experimental_results/configs", exist_ok=True)
     os.makedirs("experimental_results/results", exist_ok=True)
     # generate a U3 ansatz containing 2 layers -> 6 params
-    qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu")
+    qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") # TODO: läuft nicht wegen qml.matrix (wire_order is required)
 
     unitaries = []
     # [type_of_data][num_data_points][deg_of_entanglement][id_unitary][id_try]
@@ -306,7 +305,8 @@ def run_full_experiment():
             # iterate over training data size 1 to 4
             for num_data_points in range(1, 5, 1):
                 deg_of_entanglement_row = []
-                # iterate over degree of entanglement 1 to 4
+                # iterate over degree of entanglement 1 to 4 
+                # hier einfach nur die trainingsdaten mit hohem degree of entanglement auswählen?
                 for deg_of_entanglement in range(1, 5, 1):
                     # iterate over unitaries
                     unitary_row = []
@@ -324,7 +324,7 @@ def run_full_experiment():
                             data_batch_for_unitary.append(data_points)
                         # run this per configuration unitary (5 sets of data -> take average and stdv...)
                         exe.submit(
-                            run_single_experiment_batch,
+                            run_single_experiment_batch, 
                             grid_size,
                             dimensions,
                             data_batch_for_unitary,
