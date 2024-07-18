@@ -3,6 +3,7 @@ from scipy.optimize import OptimizeResult
 from jax import jacrev
 import torch
 from scipy.optimize import approx_fprime
+from autograd import grad
 
 """
     Original by jcmgray: https://gist.github.com/jcmgray/e0ab3458a252114beecb1f4b631e19ab
@@ -37,11 +38,12 @@ def sgd(
     #print("x",x)
     #print("fun", fun(x))
     #print("jac", approx_fprime(x,fun))
-
+    #fun_grad = grad(fun)
     for i in range(startiter, startiter + maxiter):
         #g = jac(x)
         g = approx_fprime(x,fun) # TODO: Besser machen! Braucht sehr lang. Mit torch.tensor irgendwie die Jacobi bestimmen/approx?
         #g = torch.autograd.functional.jacobian(fun,x)
+        #g = fun_grad(x) 
         if callback and callback(x):
             break
 
@@ -84,10 +86,11 @@ def rmsprop(
     print("x",x)
     print("fun", fun(x))
     print("jac", approx_fprime(x,fun))'''
-
+    #fun_grad = grad(fun)
     for i in range(startiter, startiter + maxiter):
         #g = torch.autograd.functional.jacobian(fun,x)
-        g = approx_fprime(x,fun)    
+        g = approx_fprime(x,fun)  
+        #g = fun_grad(x) 
         if callback and callback(x):
             break
 
@@ -131,11 +134,11 @@ def adam(
     print("x",x)
     print("fun", fun(x))
     print("jac", approx_fprime(x,fun))'''
-
     for i in range(startiter, startiter + maxiter):
         #print("Iteration",i)
-        #g = torch.autograd.functional.jacobian(fun,x)
-        g = approx_fprime(x,fun)
+        #g = torch.autograd.functional.jacobian(fun,x) liefert falsche ergebnisse -> nochmal probieren
+        g = approx_fprime(x,fun) #liefert als einzige verwendbare Ergebnisse, aber sehr langsam
+        #g = fun_grad(x) #kompiliert nicht
         #print("Jacobian",g)
         #print("x", x)
         #print("fun(x)", fun(x))
@@ -150,6 +153,6 @@ def adam(
     '''print("END")
     print("x",x)
     print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))'''
+    print("grad", approx_fprime(x,fun))'''
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)

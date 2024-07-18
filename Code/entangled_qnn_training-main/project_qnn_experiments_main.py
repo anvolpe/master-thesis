@@ -24,7 +24,8 @@ num_qubits = 2
 dimensions = 6
 max_iters = [100,500,1000]
 tols = [1e-5, 1e-10]
-bounds = [(0,2*np.pi)*dimensions]
+#bounds = [(0,2*np.pi)*dimensions]
+bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 
 def nelder_mead_experiment(objective,initial_param_values):
@@ -217,7 +218,7 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
     def objective(x):
         qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
         cost = cost_func(data_points, y_true, qnn, device="cpu") 
-        return torch.tensor(cost.item())
+        return cost.item()
 
     # verschiedene inital_param_values ausprobieren und avg bilden? 
     initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
@@ -225,6 +226,7 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
 
     # run optimizer experiments
     sgd_optimizers = [sgd, rmsprop, adam]
+    #sgd_optimizers = [adam]
     optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment]
 
     # TODO: ProcessPoolExecutor: funktioniert nicht, weil pickle verwendet wird und objective eine lokal definierte Funktion ist 
@@ -453,8 +455,9 @@ def test_single_optimizer():
 
     # try adam for 50 iterations, looking at jacobian & x & fun(x)
     res = minimize(objective, initial_param_values, method=adam, 
-                        options={"maxiter": 5000, "learning_rate":0.001, "eps":1e-5})
-    
+                        options={"maxiter": 50, "learning_rate":0.001, "eps":1e-5})
+
+ 
 
 if __name__ == "__main__":
     #single_optimizer_experiment(1, "random",1,1,[],[])
@@ -471,7 +474,5 @@ if __name__ == "__main__":
     #test_single_optimizer()
     print(f"total runtime: {np.round((time.time()-start)/60,2)}min") 
     # die ersten 92 configs: 2h runtime
-
-
 
     #opt = torch.optim.Adam()
