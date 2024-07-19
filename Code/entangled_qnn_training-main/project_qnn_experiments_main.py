@@ -24,12 +24,15 @@ num_qubits = 2
 dimensions = 6
 max_iters = [100,500,1000]
 tols = [1e-5, 1e-10]
+#tols = [1e-10, 1e-15] schlechte ergebnisse, 1e-5 viel besser
+#tols = [1e-2, 1e-5]
 #bounds = [(0,2*np.pi)*dimensions]
 bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
+#bounds = list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 
 def nelder_mead_experiment(objective,initial_param_values):
-    results = {}
+    results = {"type": "gradient-free"}
     run_n = 0
     for max_iter in max_iters:
         for fatol in tols:
@@ -67,7 +70,7 @@ def cobyla_experiment(objective,initial_param_values):
     return results
 
 def bfgs_experiment(objective,initial_param_values):
-    results = {}
+    results = {"type": "gradient"}
     run_n = 0
     for max_iter in max_iters:
         for gtol in tols:
@@ -87,7 +90,7 @@ def bfgs_experiment(objective,initial_param_values):
     return results
 
 def powell_experiment(objective,initial_param_values):
-    results = {}
+    results = {"type": "gradient-free"} # TODO: stimmt das??
     run_n = 0
     for max_iter in max_iters:
         for ftol in tols:
@@ -106,7 +109,7 @@ def powell_experiment(objective,initial_param_values):
     return results
 
 def slsqp_experiment(objective,initial_param_values):
-    results = {}
+    results = {"type": "gradient"} #TODO: stimmt das?
     run_n = 0
     for max_iter in max_iters:
         for ftol in tols:
@@ -125,7 +128,7 @@ def slsqp_experiment(objective,initial_param_values):
     return results
 
 def sgd_experiment(objective,initial_param_values,opt):
-    results = {}
+    results = {"type": "gradient"}
     run_n = 0
     for max_iter in max_iters:
         for learning_rate in learning_rates:
@@ -145,7 +148,7 @@ def sgd_experiment(objective,initial_param_values,opt):
 
 # gibt nicht direkt sowas wie ftol und eps
 def dual_annealing_experiment(objective,initial_param_values):
-    results = {}
+    results = {"type": "gradient-free"} 
     run_n = 0
     for max_iter in max_iters:
         #for tol in tols:
@@ -207,6 +210,13 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
         .replace(" ", "")
     )
     result_dict["databatch"] = data_points_string
+    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions)
+    initial_param_values_string = (
+        np.array2string(initial_param_values, separator=",")
+        .replace("\n", "")
+        .replace(" ", "")
+    )
+    result_dict["initial param values"] = initial_param_values_string
     
     # specifications of qnn
     qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
@@ -221,8 +231,8 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
         return cost.item()
 
     # verschiedene inital_param_values ausprobieren und avg bilden? 
-    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
-    initial_param_values_tensor = torch.tensor(initial_param_values)
+    #initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
+    #initial_param_values_tensor = torch.tensor(initial_param_values)
 
     # run optimizer experiments
     sgd_optimizers = [sgd, rmsprop, adam]
@@ -275,7 +285,8 @@ def run_all_optimizer_experiments():
     for line in Lines:
         if(line.strip() == "---"): # config has been fully read, run optimizer experiments for each data_point-tensor (5)
             # setup dictionary for dumping info into json file later
-            result_dict = {"conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
+            date = datetime.now()
+            result_dict = {"date": date.strftime("%Y/%m/%d/, %H:%M:%S"), "conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
             unitary_string = (
                 np.array2string(unitary.numpy(), separator=",")
                 .replace("\n", "")
@@ -293,7 +304,9 @@ def run_all_optimizer_experiments():
                 result_dict[databatch_key] = dict
                 #print(conf_id, data_type, num_data_points, s_rank)
             #write results to json file
-            print(f"config {conf_id}: {np.round((time.time()-start)/60,2)}min")
+            duration = np.round((time.time()-start),2)
+            print(f"config {conf_id}: {duration/60}min")
+            result_dict["duration (s)"] = duration
             os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
             file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_opt.json", mode="w")
             json.dump(result_dict, file)
@@ -365,8 +378,8 @@ def test_several_optimizers():
 
     # run optimizer experiments
     sgd_optimizers = [sgd, rmsprop, adam]
-    #optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment]
-    optimizers = [cobyla_experiment, sgd_experiment]
+    optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment]
+    #optimizers = [cobyla_experiment, sgd_experiment]
 
     #with ProcessPoolExecutor(cpu_count()) as exe:
     for opt in optimizers:
