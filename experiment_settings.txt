@@ -1,0 +1,179 @@
+
+The meaning of attributes and parameters: 
+
+- x = The solution of the optimization. Data type: ndarray
+
+- success = Whether or not the optimizer exited successfully. Data type: boolean
+
+- status = Termination status of the optimizer. Data type: integer
+
+- message = Description of the cause of the termination. Data type: String
+
+- fun, jac, hess = Values of objective function, Jacobian, Hessian or its inverse (if available). Data type: ndarray
+
+- hess_inv =  the documentation of the function in question.
+
+- nfev, njev, nhev = Number of evaluations of the objective functions and of its Jacobian and Hessian. Data type: integer
+
+- nit = Number of iterations performed by the optimizer. Data type: integer
+
+- maxcv = The maximum constraint violation. Data type: float
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for Nelder-Mead:
+
+-disp = Set to True to print convergence messages. Data type: boolean
+
+- maxiter, maxfev = Maximum allowed number of iterations and function evaluations. Data type: integer
+
+-initial_simplex = Initial simplex. If given, overrides x0. D. t. = array_like of shape (N + 1, N)
+
+Additional options:
+
+- return_all = Set to True to return a list of the best solution at each of the iterations. D. t. = boolean
+
+-xatol = Absolute error in xopt between iterations that is acceptable for convergence. D. t. = float
+
+-fatol = Absolute error in func(xopt) between iterations that is acceptable for convergence. A number
+
+-adaptive = Adapt algorithm parameters to dimensionality of problem. D. t. Boolean
+
+-bounds = Bounds on variables. A sequence
+
+
+What we used: 
+
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for COBYLA:
+
+-rhobeg = Reasonable initial changes to the variables. D. t. = float
+
+-tol = Final accuracy in the optimization. This is a lower bound on the size of the trust region. D. t. = float
+
+-disp = Set to True to print convergence messages. If False, verbosity is ignored as set to 0. D. t. = boolean 
+
+-maxiter = Maximum number of function evaluations. D. t. = integer 
+
+-catol = Tolerance for constraint violations. D. t. = float
+
+
+
+Additional options:
+
+-
+
+What we used: 
+
+- all mandatory
+ 
+---------------------------------------------------------------------------------------------------------------
+
+Options for BFGS:
+
+- disp = -"-
+
+- maxiter = -"-
+
+- gtol = Terminate successfully if gradient norm is less than gtol. D. t. = float
+
+- norm = Order of norm (Inf is max, -Inf is min). D. t. = float
+
+- eps = If jac is NONE the absolute step size used for numerical approximation of the jacobian via forward differences. D. t. = float || ndarray
+
+- return_all = Set to True to return a list of the best solution at each of the iterations.
+
+- xrtol = Relative tolerance for x. D. t. = float
+
+-c1 = Parameter for Armijo condition rule. D. t. = float (Default = 0)  
+
+-c2 = Parameter for curvature condition rule. D. t. = float (Default = 0.9)  
+
+Additional options:
+
+- finite_diff_rel_step = **Erklärung ergänzen**
+
+-hess_inv0 = Initial inverse hessian estimate, shape (n, n). If None (default) then the identity matrix is used. D. t. = None or ndarray
+
+
+What we used: 
+
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for Powell:
+
+- maxiter, maxfev = -"-
+
+- direc = Initial set of direction vectors for the Powell method. D. t.= ndarray
+
+- ftol = Relative error in fun(xopt) acceptable for convergence. D. t. = float
+
+- xtol = Relative error in solution xopt acceptable for convergence. D. t. = float
+
+- disp = Set to True to print convergence messages. D. t. = boolean
+
+
+Additional options:
+
+- return_all = -"-
+
+What we used:
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for SLSQP:
+
+-ftol = -"-
+
+-eps = Step size used for numerical approximation of the Jacobian. D. t. = float
+
+-disp = -"-
+
+- maxiter = -"-
+
+Additional options:
+
+- finite_diff_rel_step = **Erklärung ergänzen**. D. t. = None || array_like 
+
+What we used:
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for SGD:
+
+-maxiter
+
+-learning_rate
+
+-eps
+
+Additional options:
+
+-
+
+What we used: 
+
+- learning_rate
+
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for dual_annealing:  
+
+Additional options:
+
+What we used: 
+
+
+
+
+
+
+
+
+
+
+
