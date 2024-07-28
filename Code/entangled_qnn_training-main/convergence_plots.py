@@ -86,7 +86,7 @@ def extract_optimizer_data(json_data):
     mean_gradient_based_data = calculate_mean_data(gradient_based_data)
     mean_gradient_free_data = calculate_mean_data(gradient_free_data)
     
-    return mean_optimizer_data, mean_gradient_based_data, mean_gradient_free_data
+    return mean_optimizer_data, mean_gradient_based_data, mean_gradient_free_data, optimizer_data
 
 def plot_optimizer_data(optimizer_data, optimizer_save_path):
     if not os.path.exists(optimizer_save_path):
@@ -124,21 +124,46 @@ def plot_category_data(nit, fun, category_name, category_save_path):
     else:
         print(f"Keine Daten zum Plotten für Kategorie: {category_name}")
 
-def main(json_directory, optimizer_save_path, category_save_path):
+def plot_boxplots(optimizer_data, boxplot_save_path): # sgd scheint viele ausreißer zu haben
+    if not os.path.exists(boxplot_save_path):
+        os.makedirs(boxplot_save_path)
+        
+    plt.figure()
+    data_to_plot = []
+    labels = []
+    
+    for optimizer, results in optimizer_data.items():
+        if results:
+            labels.append(optimizer)
+            _, fun = zip(*results)
+            data_to_plot.append(fun)
+    
+    plt.boxplot(data_to_plot, labels=labels)
+    plt.xlabel('Optimizers')
+    plt.ylabel('Function Value (fun)')
+    plt.title('Boxplot of Function Values')
+    plt.grid(True)
+    file_path = os.path.join(boxplot_save_path, 'optimizer_boxplots.png')
+    plt.savefig(file_path)
+    plt.close()
+
+def main(json_directory, optimizer_save_path, category_save_path, boxplot_save_path):
     json_data = load_json_files(json_directory)
     if not json_data:
         print("Keine Daten zum Verarbeiten.")
         return
-    optimizer_data, gradient_based_data, gradient_free_data = extract_optimizer_data(json_data)
+    optimizer_data, gradient_based_data, gradient_free_data, raw_optimizer_data = extract_optimizer_data(json_data)
     if not optimizer_data:
         print("Keine Optimierungsdaten zum Plotten.")
         return
     plot_optimizer_data(optimizer_data, optimizer_save_path)
     plot_category_data(*gradient_based_data, 'Gradient-Based', category_save_path)
     plot_category_data(*gradient_free_data, 'Gradient-Free', category_save_path)
+    plot_boxplots(raw_optimizer_data, boxplot_save_path)
 
 if __name__ == "__main__":
     json_directory = 'qnn-experiments/experimental_results/results/2024-07-19_allConfigs_allOpt'
     optimizer_save_path = 'qnn-experiments/experimental_results/results/optimizer_plots'
     category_save_path = 'qnn-experiments/experimental_results/results/category_plots'
-    main(json_directory, optimizer_save_path, category_save_path)
+    boxplot_save_path = 'qnn-experiments/experimental_results/results/box_plots'
+    main(json_directory, optimizer_save_path, category_save_path, boxplot_save_path)
