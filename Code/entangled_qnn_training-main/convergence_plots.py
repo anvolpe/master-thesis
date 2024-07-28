@@ -3,7 +3,6 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-# json dateien werden gefunden und richtig eingelesen :)
 def load_json_files(directory):
     data = []
     for filename in os.listdir(directory):
@@ -21,10 +20,13 @@ def load_json_files(directory):
     return data
 
 def extract_optimizer_data(json_data):
-    optimizers = ["nelder_mead", "bfgs", "cobyla", "sgd", "powell", "slsqp", "dual_annealing"] 
-    optimizer_data = {}
+    gradient_based = ["nelder_mead", "bfgs", "slsqp"]
+    gradient_free = ["sgd", "powell", "dual_annealing"]
+    optimizers = gradient_based + gradient_free
 
-    # cobyla wird aktuell gar nicht geplottet
+    optimizer_data = {}
+    gradient_based_data = []
+    gradient_free_data = []
 
     for entry in json_data:
         if isinstance(entry, dict):
@@ -44,7 +46,6 @@ def extract_optimizer_data(json_data):
                             batch_data = entry[batch_key][optimizer]
                             for key in batch_data:
                                 data = batch_data[key]
-                                #print(f"Durchlauf-Daten: {data}")
                                 
                                 # data muss dictionary sein und schlüssel enthalten
                                 if isinstance(data, dict):
@@ -56,40 +57,40 @@ def extract_optimizer_data(json_data):
                                             nit = int(nit)
                                             fun = float(fun)
                                             optimizer_data[optimizer].append((nit, fun))
+                                            if optimizer in gradient_based:
+                                                gradient_based_data.append((nit, fun))
+                                            if optimizer in gradient_free:
+                                                gradient_free_data.append((nit, fun))
                                         except ValueError as e:
                                             print(f"Fehler beim Konvertieren der Daten: {e}")
                                     else:
-                                        # tritt öfter auf: fehlt nit an manchen Stellen in den .json-Dateien ???
                                         print(f"Fehlende Schlüssel in den Daten: {data}")
                                 else:
-                                    # gibt hier aktuell öfter gradient/gradient-free aus
                                     print(f"Unerwartete Datenstruktur: {data}")
                         else:
                             print(f"Optimierer {optimizer} nicht in den Datenbatch {batch_key} gefunden")
         else:
             print("Eintrag ist kein Dictionary")
 
-    #print("Extrahierte Optimierungsdaten:")
-    #for optimizer, results in optimizer_data.items():
-        #print(f"{optimizer}: {results}")
+    # Berechne mean fun values
+    def calculate_mean_data(data):
+        if not data:
+            return [], []
+        data.sort()
+        nits, funs = zip(*data)
+        unique_nits = sorted(set(nits))
+        mean_funs = [np.mean([fun for nit, fun in data if nit == unique_nit]) for unique_nit in unique_nits]
+        return unique_nits, mean_funs
 
-    # mean value berechnen für die Plots
-    ### Standard deviation bisher nicht eingebaut ###
-    mean_optimizer_data = {}
-    for optimizer, results in optimizer_data.items():
-        if results:
-            print(f"Berechne Mittelwerte für: {optimizer}")
-            results.sort()  # nach nits sortieren
-            nits, funs = zip(*results)  # entpacken in nits und funs
-            unique_nits = sorted(set(nits))
-            mean_funs = [np.mean([fun for nit, fun in results if nit == unique_nit]) for unique_nit in unique_nits]
-            mean_optimizer_data[optimizer] = (unique_nits, mean_funs)
+    mean_optimizer_data = {optimizer: calculate_mean_data(results) for optimizer, results in optimizer_data.items()}
+    mean_gradient_based_data = calculate_mean_data(gradient_based_data)
+    mean_gradient_free_data = calculate_mean_data(gradient_free_data)
     
-    return mean_optimizer_data
+    return mean_optimizer_data, mean_gradient_based_data, mean_gradient_free_data
 
-def plot_optimizer_data(optimizer_data, save_path):
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+def plot_optimizer_data(optimizer_data, optimizer_save_path):
+    if not os.path.exists(optimizer_save_path):
+        os.makedirs(optimizer_save_path)
         
     for optimizer, (nit, fun) in optimizer_data.items():
         if len(nit) > 0 and len(fun) > 0:
@@ -99,27 +100,45 @@ def plot_optimizer_data(optimizer_data, save_path):
             plt.ylabel('Average Function Value (fun)')
             plt.title(f'Convergence Plot for {optimizer}')
             plt.legend()
-            plt.xscale('log') # hier evtl abändern, damit man klarer sehen kann welcher nit vorkommen
+            plt.xscale('log')
             plt.grid(True)
-            file_path = os.path.join(save_path, f'{optimizer}_convergence_plot.png')
+            file_path = os.path.join(optimizer_save_path, f'{optimizer}_convergence_plot.png')
             plt.savefig(file_path)
-            # print(f"Plot gespeichert: {file_path}")
             plt.close()
         else:
             print(f"Keine Daten zum Plotten für Optimierer: {optimizer}")
 
-def main(json_directory, save_path):
+def plot_category_data(nit, fun, category_name, category_save_path):
+    if len(nit) > 0 and len(fun) > 0:
+        plt.figure()
+        plt.plot(nit, fun, marker='o', label=category_name)
+        plt.xlabel('Number of Iterations (nit)')
+        plt.ylabel('Average Function Value (fun)')
+        plt.title(f'Convergence Plot for {category_name}')
+        plt.legend()
+        plt.xscale('log')
+        plt.grid(True)
+        file_path = os.path.join(category_save_path, f'{category_name}_convergence_plot.png')
+        plt.savefig(file_path)
+        plt.close()
+    else:
+        print(f"Keine Daten zum Plotten für Kategorie: {category_name}")
+
+def main(json_directory, optimizer_save_path, category_save_path):
     json_data = load_json_files(json_directory)
     if not json_data:
         print("Keine Daten zum Verarbeiten.")
         return
-    optimizer_data = extract_optimizer_data(json_data)
+    optimizer_data, gradient_based_data, gradient_free_data = extract_optimizer_data(json_data)
     if not optimizer_data:
         print("Keine Optimierungsdaten zum Plotten.")
         return
-    plot_optimizer_data(optimizer_data, save_path)
+    plot_optimizer_data(optimizer_data, optimizer_save_path)
+    plot_category_data(*gradient_based_data, 'Gradient-Based', category_save_path)
+    plot_category_data(*gradient_free_data, 'Gradient-Free', category_save_path)
 
 if __name__ == "__main__":
     json_directory = 'qnn-experiments/experimental_results/results/2024-07-19_allConfigs_allOpt'
-    save_path = 'qnn-experiments/experimental_results/results/optimizer_plots'
-    main(json_directory, save_path)
+    optimizer_save_path = 'qnn-experiments/experimental_results/results/optimizer_plots'
+    category_save_path = 'qnn-experiments/experimental_results/results/category_plots'
+    main(json_directory, optimizer_save_path, category_save_path)
