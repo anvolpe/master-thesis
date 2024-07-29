@@ -22,23 +22,26 @@ import re
 num_layers = 1
 num_qubits = 2
 dimensions = 6
-max_iters = [100,500,1000]
-tols = [1e-5, 1e-10]
+#max_iters = [100,500,1000]
+max_iters = [1000]
+tols = [1e-5]
+#tols = [1e-5, 1e-10]
 #tols = [1e-10, 1e-15] schlechte ergebnisse, 1e-5 viel besser
 #tols = [1e-2, 1e-5]
 #bounds = [(0,2*np.pi)*dimensions]
 default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 #bounds = list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi))
-learning_rates = [0.01, 0.001, 0.0001]
+#learning_rates = [0.01, 0.001, 0.0001]
+learning_rates = [0.0001]
 
-def nelder_mead_experiment(objective,initial_param_values):
+def nelder_mead_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient-free"}
     run_n = 0
     for max_iter in max_iters:
         for fatol in tols:
             for xatol in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="Nelder-Mead", 
+                res = minimize(objective, initial_param_values, method="Nelder-Mead", bounds=bounds, 
                         options={"maxiter": max_iter, "fatol":fatol, "xatol":xatol})
                 duration = time.time() - start
                 # fill results dict
@@ -50,14 +53,14 @@ def nelder_mead_experiment(objective,initial_param_values):
                 run_n += 1
     return results
 
-def cobyla_experiment(objective,initial_param_values):
-    results = {}
+def cobyla_experiment(objective,initial_param_values,bounds=None):
+    results = {"type" : "gradient-free"}
     run_n = 0
     for max_iter in max_iters:
         for tol in tols:
             for catol in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="COBYLA", 
+                res = minimize(objective, initial_param_values, method="COBYLA", bounds=bounds,  
                         options={"maxiter": max_iter, "tol":tol, "catol":catol})
                 duration = time.time() - start
                 # fill results dict
@@ -69,7 +72,7 @@ def cobyla_experiment(objective,initial_param_values):
                 run_n += 1
     return results
 
-def bfgs_experiment(objective,initial_param_values):
+def bfgs_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient"}
     run_n = 0
     for max_iter in max_iters:
@@ -77,7 +80,7 @@ def bfgs_experiment(objective,initial_param_values):
             for xrtol in tols:
                 for eps in tols:
                     start = time.time()
-                    res = minimize(objective, initial_param_values, method="BFGS", 
+                    res = minimize(objective, initial_param_values, method="BFGS", bounds=bounds,  
                             options={"maxiter": max_iter, "gtol":gtol, "xrtol":xrtol, "eps":eps})
                     duration = time.time() - start
                     # fill results dict
@@ -89,14 +92,14 @@ def bfgs_experiment(objective,initial_param_values):
                     run_n += 1
     return results
 
-def powell_experiment(objective,initial_param_values):
+def powell_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient-free"} # TODO: stimmt das??
     run_n = 0
     for max_iter in max_iters:
         for ftol in tols:
             for xtol in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="Powell", 
+                res = minimize(objective, initial_param_values, method="Powell", bounds=bounds,  
                         options={"maxiter": max_iter, "ftol":ftol, "xtol":xtol})
                 duration = time.time() - start
                 # fill results dict
@@ -108,14 +111,14 @@ def powell_experiment(objective,initial_param_values):
                 run_n += 1
     return results
 
-def slsqp_experiment(objective,initial_param_values):
+def slsqp_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient"} #TODO: stimmt das?
     run_n = 0
     for max_iter in max_iters:
         for ftol in tols:
             for eps in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="SLSQP", 
+                res = minimize(objective, initial_param_values, method="SLSQP", bounds=bounds,  
                         options={"maxiter": max_iter, "ftol":ftol, "eps":eps})
                 duration = time.time() - start
                 # fill results dict
@@ -127,7 +130,7 @@ def slsqp_experiment(objective,initial_param_values):
                 run_n += 1
     return results
 
-def sgd_experiment(objective,initial_param_values,opt):
+def sgd_experiment(objective,initial_param_values,opt,bounds=None):
     results = {"type": "gradient"}
     run_n = 0
     for max_iter in max_iters:
@@ -147,7 +150,7 @@ def sgd_experiment(objective,initial_param_values,opt):
     return results
 
 # gibt nicht direkt sowas wie ftol und eps
-def dual_annealing_experiment(objective,initial_param_values,bounds):
+def dual_annealing_experiment(objective,initial_param_values,bounds=default_bounds):
     results = {"type": "gradient-free"} 
     run_n = 0
     for max_iter in max_iters:
@@ -259,7 +262,7 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
 
     return result_dict
         
-def single_optimizer_experiment_dual_annealing(conf_id, databatch_id, data_type, num_data_points, s_rank, unitary, data_points):
+def single_config_experiment_bounds(conf_id, databatch_id, data_type, num_data_points, s_rank, unitary, data_points):
     '''
     Run all optimizer experiments for a single config & databatch combination
 
@@ -299,37 +302,39 @@ def single_optimizer_experiment_dual_annealing(conf_id, databatch_id, data_type,
 
     # run optimizer experiments
     sgd_optimizers = [sgd, rmsprop, adam]
-    #sgd_optimizers = [adam]
-    optimizers = [bfgs_experiment, cobyla_experiment, dual_annealing_experiment]
+    optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment]
     bound_batches = []
-    bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
-    bound_batches.append(bounds)
-    bound_batches.append(list(zip(np.zeros(6), np.ones(6)*3*np.pi)))
+    bound_batches.append(list(zip(np.zeros(6), np.ones(6)*2*np.pi)))
     bound_batches.append(list(zip(np.zeros(6), np.ones(6)*4*np.pi)))
     bound_batches.append(list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi)))
-    bound_batches.append(list(zip(np.ones(6)*(-3)*np.pi, np.ones(6)*3*np.pi)))
     bound_batches.append(list(zip(np.ones(6)*(-4)*np.pi, np.ones(6)*4*np.pi)))
-    # TODO: ProcessPoolExecutor: funktioniert nicht, weil pickle verwendet wird und objective eine lokal definierte Funktion ist 
-    # (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
-    # Multiprocessing (??) könnte funktionieren. Oder eigene Klasse??
-    # with ProcessPoolExecutor(cpu_count()) as exe:
+
+
+    # no bounds for all optimizers (excluding dual annealing):
+    # maxiter = 1000, tol = 1e-5, learning rate = 0.001
+    result_dict["bounds_0"] = {"bounds": "none"}
     for opt in optimizers:
-        if opt == dual_annealing_experiment:
-            i=0
-            for bounds in bound_batches:
-                #future = exe.submit(sgd_experiment, objective, initial_param_values_tensor, variant)
-                result = dual_annealing_experiment(objective,initial_param_values,bounds)
-                opt_name = f'dual_annealing_{i}'
-                #result_dict[opt_name] = future.result()
-                result["bounds"] = bounds
-                result_dict[opt_name] = result
-                i += 1
-        else:
-            #future = exe.submit(opt, objective, initial_param_values)
+        if opt == sgd_experiment:
+            for variant in sgd_optimizers:
+                result = sgd_experiment(objective,initial_param_values,variant)
+                opt_name = variant.__name__
+                result_dict["bounds_0"][opt_name] = result
+        elif opt != dual_annealing_experiment:
             result = opt(objective,initial_param_values)
             opt_name = opt.__name__.removesuffix('_experiment')
-            #result_dict[opt_name] = future.result()
-            result_dict[opt_name] = result
+            result_dict["bounds_0"][opt_name] = result
+
+    # for all bounds test all optimizers (except sgd, adam, rmsprop and bfgs, since no bounds can be specified)
+    # maxiter = 1000, tol = 1e-5, learning rate = 0.001
+    optimizers = [nelder_mead_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, dual_annealing_experiment]
+    i = 1
+    for bounds in bound_batches:
+        result_dict[f'bounds_{i}'] = {"bounds": bounds}
+        for opt in optimizers:
+            result = opt(objective,initial_param_values,bounds)
+            opt_name = opt.__name__.removesuffix('_experiment')
+            result_dict[f'bounds_{i}'][opt_name] = result
+        i += 1
 
     return result_dict
 
@@ -370,10 +375,11 @@ def run_all_optimizer_experiments():
             #databatch = databatches[n]
             #print(len(databatches))
             start = time.time()
+            print(databatches)
             for i in range(len(databatches)): 
                 data_points = databatches[i]  
                 dict = single_optimizer_experiment(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
-                databatch_key = f"databatch_{databatch_id}"
+                databatch_key = f"databatch_{i}"
                 result_dict[databatch_key] = dict
                 #print(conf_id, data_type, num_data_points, s_rank)
             #write results to json file
@@ -400,6 +406,7 @@ def run_all_optimizer_experiments():
                 val,_ = re.subn('\[|\]|\\n', '', val)
                 #print(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4)))
                 databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) #data_points: 1x4x4 tensor
+
 
 def test_several_optimizers():
     '''
@@ -543,7 +550,7 @@ def test_single_optimizer():
     res = minimize(objective, initial_param_values, method=adam, 
                         options={"maxiter": 50, "learning_rate":0.001, "eps":1e-5})
 
-def test_dual_annealing():
+def test_bounds():
     '''
     Read all configurations of qnn and databatches from configurations_16_6_4_10_13_3_14.txt and run optimizer experiments
     for every configuration & databatch combination
@@ -562,8 +569,9 @@ def test_dual_annealing():
     unitary = []
     databatches = []
     result_dict = {}
-
+    i = 1
     for line in Lines:
+        if(i>100): break
         if(line.strip() == "---"): # config has been fully read, run optimizer experiments for each data_point-tensor (5)
             # setup dictionary for dumping info into json file later
             date = datetime.now()
@@ -580,16 +588,16 @@ def test_dual_annealing():
             start = time.time()
             for i in range(len(databatches)): 
                 data_points = databatches[i]
-                dict = single_optimizer_experiment_dual_annealing(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
-                databatch_key = f"databatch_{databatch_id}"
+                dict = single_config_experiment_bounds(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
+                databatch_key = f"databatch_{i}"
                 result_dict[databatch_key] = dict
                 #print(conf_id, data_type, num_data_points, s_rank)
             #write results to json file
             duration = np.round((time.time()-start),2)
             print(f"config {conf_id}: {duration/60}min")
             result_dict["duration (s)"] = duration
-            os.makedirs("experimental_results/results/optimizer_results/dual_annealing", exist_ok=True)
-            file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_dual_annealing.json", mode="w")
+            os.makedirs("experimental_results/results/optimizer_results/bounds", exist_ok=True)
+            file = open(f"experimental_results/results/optimizer_results/bounds/conf_{conf_id}_bounds.json", mode="w")
             json.dump(result_dict, file)
             databatches = []
             unitary = []
@@ -608,6 +616,7 @@ def test_dual_annealing():
                 val,_ = re.subn('\[|\]|\\n', '', val)
                 #print(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4)))
                 databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) #data_points: 1x4x4 tensor
+        i += 1
 
 
 if __name__ == "__main__":
@@ -620,7 +629,7 @@ if __name__ == "__main__":
     
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
-    test_dual_annealing()
+    test_bounds()
     #test_several_optimizers()
     #test_single_optimizer()
     print(f"total runtime: {np.round((time.time()-start)/60,2)}min") 
