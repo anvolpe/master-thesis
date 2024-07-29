@@ -20,8 +20,8 @@ def load_json_files(directory):
     return data
 
 def extract_optimizer_data(json_data):
-    gradient_based = ["nelder_mead", "bfgs", "slsqp"]
-    gradient_free = ["sgd", "powell", "dual_annealing"]
+    gradient_based = ["nelder_mead", "powell", "cobyla"]
+    gradient_free = ["sgd", "adam", "rmsprop", "bfgs", "dual_annealing", "slsqp"]
     optimizers = gradient_based + gradient_free
 
     optimizer_data = {}
@@ -144,7 +144,9 @@ def plot_boxplots(optimizer_data, boxplot_save_path): # sgd scheint viele ausrei
     plt.xlabel('Optimizers')
     plt.ylabel('Function Value (fun)')
     plt.title('Boxplot of Function Values')
+    plt.xticks(rotation=90)
     plt.grid(True)
+    plt.tight_layout()
     file_path = os.path.join(boxplot_save_path, 'optimizer_boxplots.png')
     plt.savefig(file_path)
     plt.close()
