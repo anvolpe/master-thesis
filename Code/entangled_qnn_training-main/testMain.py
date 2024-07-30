@@ -14,7 +14,7 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 import os
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import minimize, rosen, rosen_der
 
 def generate_and_save_testLandscape():
     print("####### Generate and Save test landscape")
@@ -181,10 +181,11 @@ def optimizer_experiment():
     optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
     results = {}
     initial_param_values = np.random.uniform(-np.pi, np.pi, size=dimensions)
+    bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
     for opt in optimizers:
         start = time.time()
         res = minimize(objective, initial_param_values, method=opt,
-                       options={"maxiter": 100})
+                       options={"maxiter": 100, "bounds": bounds})
         duration = time.time() - start
         results[opt] = {'result': res, 'duration': duration}
         print(f"Optimizer: {opt}")
@@ -200,14 +201,22 @@ def optimizer_experiment():
         for opt, result in results.items():
             writer.writerow([opt, result['result'], result['duration']])
 
-
+def testMinimizeBounds():
+    x0 = [1.3, 0.7, 0.8, 1.9, 1.2]
+    bounds = list(zip(np.zeros(5), np.ones(6)*2))
+    res = minimize(rosen, x0, method='BFGS', jac=rosen_der, bounds=bounds, options={'gtol': 1e-6, 'disp': True})
 
 if __name__ == "__main__":
     #single_test_run()
     #run_full_experiment()
     #generate_and_save_testLandscape()
     #run_single_optimizer_experiment()
-    optimizer_experiment()
+    #testMinimizeBounds()
+    s = "[0.001 1.456 40.20202]"
+    x = [float(idx) for idx in s.strip("[]").split(' ')]
+    x_min = np.min(x)
+    x_max = np.max(x)
+    print(x_min, x_max)
 
     
     
