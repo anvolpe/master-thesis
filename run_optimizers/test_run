@@ -1,0 +1,143 @@
+import numpy as np
+from qiskit import Aer, transpile
+from scipy.optimize import minimize
+from qiskit.circuit.library import EfficientSU2
+from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import random_clifford
+from qiskit import QuantumCircuit
+import time
+import csv
+
+seed = 1
+np.random.seed(seed)
+operator_matrix = np.matrix([[3. + 0.j, 2. + 0.j, 0. + 0.j, 0. - 2.5j], [2. + 0.j, -3. + 0.j, 0. + 2.5j, 0. + 0.j],
+                             [0. + 0.j, 0. - 2.5j, -3. + 0.j, 0. + 0.j], [0. + 2.5j, 0. + 0.j, 0. + 0.j, 3. + 0.j]])
+pauli_operator = SparsePauliOp.from_operator(operator_matrix)
+
+def prepare_meas_circuits(circuit: QuantumCircuit, n_shadows, seed=None):
+    circuits = []
+    unitaries = []
+    for i in range(n_shadows):
+        clifford = random_clifford(num_qubits=circuit.num_qubits, seed=seed)
+        cir = circuit.compose(clifford.to_circuit())
+        cir.measure_all()
+        circuits.append(cir)
+        unitaries.append(clifford.to_matrix())
+
+    return circuits, unitaries
+
+def estimate_fidelity_from_shadow(unitaries, measured_bitstrings, target_state):
+    measured_bitstrings = [np.matrix(b) for b in measured_bitstrings]
+    unitaries = [np.matrix(u) for u in unitaries]
+    target_state = np.matrix(target_state)
+
+    n_shots = len(measured_bitstrings)
+    n_qubits = np.log2(target_state.shape[1])
+    observable = target_state.T @ np.conj(target_state)
+
+    fidelity = 0
+    factor = 2 ** n_qubits + 1
+    for i in range(n_shots):
+        product = np.conj(measured_bitstrings[i]) @ (unitaries[i] @ observable @ unitaries[i].H) @ measured_bitstrings[i].T
+        cur_fid = factor * product - 1
+        fidelity += cur_fid
+
+    fidelity = fidelity / n_shots
+    fidelity = np.abs(np.sum(fidelity))
+    return fidelity
+
+def generate_hermitian(n=2, a_range=(-5, 5), complex=True, sparsity=None):
+    shape = (2 ** n, 2 ** n)
+    matrix = generate_matrix(shape, a_range, complex, sparsity)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            if i == j:
+                matrix[i, j] = np.real(matrix[i, j])
+            if i > j:
+                matrix[i, j] = np.conjugate(matrix[j, i])
+    return matrix
+
+def generate_matrix(shape=(2, 2), a_range=(-5, 5), complex=True, sparsity=None):
+    matrix = np.random.uniform(*a_range, shape)
+    if complex:
+        matrix = matrix + 1.j * np.random.uniform(*a_range, shape)
+    if sparsity:
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                matrix[i, j] = np.random.choice([0, matrix[i, j]], p=[sparsity, 1 - sparsity])
+    return np.matrix(matrix)
+
+def power_method(matrix, num_iterations=10):
+    bk = np.random.rand(matrix.shape[1]) + 1.j * np.random.rand(matrix.shape[1])
+    bk = np.matrix(bk).T
+    for i in range(num_iterations):
+        bk1 = np.dot(matrix, bk)
+        bk = bk1 / np.linalg.norm(bk1)
+    return bk
+
+def inverse_power_method(matrix, shift=0, num_iterations=10):
+    inv_matrix = np.linalg.inv(matrix - shift * np.identity(matrix.shape[0]))
+    return power_method(inv_matrix, num_iterations)
+
+def get_gershgorins(matrix, draw=False):
+    centers, radii = [], []
+    for i in range(matrix.shape[0]):
+        centers.append(matrix[i, i])
+        radii.append(np.sum([np.abs(matrix[i, j]) if j is not i else 0 for j in range(matrix.shape[0])]))
+    return centers, radii
+
+def get_gershgorin_extrema(matrix):
+    centers, radii = get_gershgorins(matrix, draw=False)
+    min_bound = min(np.subtract(np.real(centers), radii))
+    max_bound = max(np.add(np.real(centers), radii))
+    return min_bound, max_bound
+
+def main():
+    approx_iterations = 3
+    shift = get_gershgorin_extrema(operator_matrix)[0]
+    approx_eigenstate = inverse_power_method(operator_matrix, shift=shift, num_iterations=approx_iterations).T.tolist()[0]
+
+    n_shadows = 100
+    problem_size = int(np.log2(len(operator_matrix)))
+    ansatz = EfficientSU2(num_qubits=problem_size, reps=2)
+    meas_circuits, unitaries = prepare_meas_circuits(ansatz, n_shadows, seed=seed)
+
+    initial_param_values = np.random.uniform(-np.pi, np.pi, size=len(ansatz.parameters))
+    backend = Aer.get_backend("statevector_simulator")
+
+    def objective(x):
+        # print(f"Starting optimization with parameters: {x}")
+        final_meas_circuits = [c.assign_parameters(x) for c in meas_circuits]
+        transpiled_circuits = transpile(final_meas_circuits, backend=backend)
+        job = backend.run(transpiled_circuits, shots=1, seed_transpiler=seed, seed_simulator=seed)
+        res = job.result()
+        counts = [res.get_counts(i) for i, c in enumerate(final_meas_circuits)]
+        bs = [Statevector.from_label(list(cnt.keys())[0]) for cnt in counts]
+        obj_value = -estimate_fidelity_from_shadow(unitaries, bs, approx_eigenstate)
+        # print(f"Parameters: {x}, Objective value: {obj_value}")
+        return obj_value
+
+    optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
+    results = {}
+
+    for opt in optimizers:
+        start = time.time()
+        res = minimize(objective, initial_param_values, method=opt,
+                       options={"maxiter": 100})
+        duration = time.time() - start
+        results[opt] = {'result': res, 'duration': duration}
+        print(f"Optimizer: {opt}")
+        print(res)
+        print(f"Duration: {duration}s\n")
+
+    print("Results:", results)
+
+    with open('optimization_results.csv', mode='w') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Optimizer", "Result", "Duration"])
+
+        for opt, result in results.items():
+            writer.writerow([opt, result['result'], result['duration']])
+
+main()
