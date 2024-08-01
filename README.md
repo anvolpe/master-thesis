@@ -6,7 +6,11 @@ The Code is adapted from Victor Ülger's master thesis "Analyzing the Effect of 
 
 Code/entangled_qnn_training-main/project_qnn_experiments_main.py contains the (initial) main experiment methods. 
 
-experimental_results/results/optimization_results.csv contains (initial) experiment results.
+experimental_results/results/2024-07-19_allConfigs_allOpt contains initial experimental results (for all optimizers) 
+
+experimental_results/results/optimizer_results/bounds_2024-07-29 contains experimental results for different bounds (for x). 
+
+qnn-experiments/plots contains all plots (fun vs. max. iterations (boxplot), average fun vs. (actual) iterations, min and max x-value per bounds (boxplots))
 
 ## Dependencies
 
