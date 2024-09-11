@@ -372,23 +372,21 @@ def run_all_optimizer_experiments():
             )
             result_dict["unitary"] = unitary_string
             n = 0
-            #databatch = databatches[n]
-            #print(len(databatches))
-            start = time.time()
-            print(databatches)
-            for i in range(len(databatches)): 
-                data_points = databatches[i]  
-                dict = single_optimizer_experiment(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
-                databatch_key = f"databatch_{i}"
-                result_dict[databatch_key] = dict
-                #print(conf_id, data_type, num_data_points, s_rank)
-            #write results to json file
-            duration = np.round((time.time()-start),2)
-            print(f"config {conf_id}: {duration/60}min")
-            result_dict["duration (s)"] = duration
-            os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
-            file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_opt.json", mode="w")
-            json.dump(result_dict, file)
+            for run_id in range(10):
+                start = time.time()
+                for i in range(len(databatches)): 
+                    data_points = databatches[i]  
+                    dict = single_optimizer_experiment(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
+                    databatch_key = f"databatch_{i}"
+                    result_dict[databatch_key] = dict
+                    #print(conf_id, data_type, num_data_points, s_rank)
+                #write results to json file
+                duration = np.round((time.time()-start),2)
+                print(f"config {conf_id}: {duration/60}min")
+                result_dict["duration (s)"] = duration
+                os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
+                file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
+                json.dump(result_dict, file)
             databatches = []
             unitary = []
             n += 1
