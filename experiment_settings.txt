@@ -41,7 +41,6 @@ Additional options:
 
 -bounds = Bounds on variables. A sequence
 
-
 What we used: 
 
 - maxiter,fatol and xatol
@@ -60,17 +59,11 @@ Options for COBYLA:
 
 -catol = Tolerance for constraint violations. D. t. = float
 
-
-
-Additional options:
-
--
-
 What we used: 
 
 - all mandatory 
 
-maxiter,tol and catol
+-maxiter,tol and catol
  
 ---------------------------------------------------------------------------------------------------------------
 
@@ -96,14 +89,13 @@ Options for BFGS:
 
 Additional options:
 
-- finite_diff_rel_step = **Erklärung ergänzen**
+- finite_diff_rel_step = If the Jacobian approximation method is set to '2-point', '3-point', or 'cs', this parameter specifies the relative step size used for numerical computation of the Jacobian. D.t. = None or array_like,
 
 -hess_inv0 = Initial inverse hessian estimate, shape (n, n). If None (default) then the identity matrix is used. D. t. = None or ndarray
 
-
 What we used: 
 
-maxiter, gtol, xrtol and eps
+-maxiter, gtol, xrtol and eps
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -141,14 +133,14 @@ Options for SLSQP:
 
 Additional options:
 
-- finite_diff_rel_step = **Erklärung ergänzen**. D. t. = None || array_like 
+- finite_diff_rel_step = -"- 
 
 What we used:
 
 maxiter,ftol and eps 
 ---------------------------------------------------------------------------------------------------------------
 
-Options for SGD:
+Options for SGD(Stochastic Gradient Descent):
 
 -maxiter
 
@@ -156,12 +148,7 @@ Options for SGD:
 
 -eps
 
-Additional options:
-
--
-
 What we used: 
-
 
 -maxiter,eps and learning_rate
 
