@@ -34,6 +34,16 @@ default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 #learning_rates = [0.01, 0.001, 0.0001]
 learning_rates = [0.0001]
 
+# Callback: Save every 10th intermediate results of each optimization
+fun_all = [] # array for callback function (save every 10th fun value during optimization)
+nit = 0
+def saveIntermResult(intermediate_result: OptimizeResult):
+    fun=intermediate_result.fun
+    global nit
+    nit += 1
+    if(nit%10==0):
+        fun_all.append(fun)
+
 def nelder_mead_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient-free"}
     run_n = 0
@@ -41,7 +51,7 @@ def nelder_mead_experiment(objective,initial_param_values,bounds=None):
         for fatol in tols:
             for xatol in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="Nelder-Mead", bounds=bounds, 
+                res = minimize(objective, initial_param_values, method="Nelder-Mead", bounds=bounds, callback=saveIntermResult,
                         options={"maxiter": max_iter, "fatol":fatol, "xatol":xatol})
                 duration = time.time() - start
                 # fill results dict
@@ -50,6 +60,11 @@ def nelder_mead_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                #global fun_all
+                results[run_n]["callback"] = fun_all
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
@@ -69,6 +84,11 @@ def cobyla_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                global fun_all
+                results[run_n]["callback"] = fun_all
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
@@ -80,7 +100,7 @@ def bfgs_experiment(objective,initial_param_values,bounds=None):
             for xrtol in tols:
                 for eps in tols:
                     start = time.time()
-                    res = minimize(objective, initial_param_values, method="BFGS", bounds=bounds,  
+                    res = minimize(objective, initial_param_values, method="BFGS", bounds=bounds,  callback=saveIntermResult,
                             options={"maxiter": max_iter, "gtol":gtol, "xrtol":xrtol, "eps":eps})
                     duration = time.time() - start
                     # fill results dict
@@ -89,6 +109,12 @@ def bfgs_experiment(objective,initial_param_values,bounds=None):
                     # result info
                     for attribute in res.keys():
                         results[run_n][attribute] = str(res[attribute])
+                    global fun_all
+                    print(fun_all)
+                    results[run_n]["callback"] = fun_all
+                    fun_all.clear()
+                    global nit 
+                    nit = 0
                     run_n += 1
     return results
 
@@ -99,7 +125,7 @@ def powell_experiment(objective,initial_param_values,bounds=None):
         for ftol in tols:
             for xtol in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="Powell", bounds=bounds,  
+                res = minimize(objective, initial_param_values, method="Powell", bounds=bounds,   callback=saveIntermResult,
                         options={"maxiter": max_iter, "ftol":ftol, "xtol":xtol})
                 duration = time.time() - start
                 # fill results dict
@@ -108,6 +134,11 @@ def powell_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                global fun_all
+                results[run_n]["callback"] = fun_all
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
@@ -137,7 +168,7 @@ def sgd_experiment(objective,initial_param_values,opt,bounds=None):
         for learning_rate in learning_rates:
             for eps in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method=opt, 
+                res = minimize(objective, initial_param_values, method=opt,  callback=saveIntermResult,
                         options={"maxiter": max_iter, "learning_rate":learning_rate, "eps":eps})
                 duration = time.time() - start
                 # fill results dict
@@ -146,6 +177,11 @@ def sgd_experiment(objective,initial_param_values,opt,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                global fun_all
+                results[run_n]["callback"] = fun_all
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
@@ -157,7 +193,7 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
         #for tol in tols:
         #for catol in tols:
                 start = time.time()
-                res = dual_annealing(objective, bounds, maxiter=max_iter)
+                res = dual_annealing(objective, bounds, maxiter=max_iter) # TODO: callback
                 duration = time.time() - start
                 # fill results dict
                 # specifications of this optimizer run
@@ -165,8 +201,14 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                global fun_all
+                results[run_n]["callback"] = fun_all
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
+
 
 # nicht mehr nötig --> LÖSCHEN?
 def single_config_experiments(conf_id, data_type, num_data_points, s_rank, unitary, data_points):
@@ -240,7 +282,7 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
     sgd_optimizers = [sgd, rmsprop, adam]
     #sgd_optimizers = [adam]
     optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment]
-
+    
     # TODO: ProcessPoolExecutor: funktioniert nicht, weil pickle verwendet wird und objective eine lokal definierte Funktion ist 
     # (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
     # Multiprocessing (??) könnte funktionieren. Oder eigene Klasse??
@@ -371,6 +413,7 @@ def run_all_optimizer_experiments():
                 .replace(" ", "")
             )
             result_dict["unitary"] = unitary_string
+            
             n = 0
             for run_id in range(10):
                 start = time.time()
@@ -501,7 +544,7 @@ def test_several_optimizers():
     file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_test.json", mode="w")
     json.dump(result_dict, file)
 
-def test_single_optimizer():
+def test_single_optimizer(callback: bool):
     '''
     Test function for conf_id 0 and data_batch_0 for one optimizer.
     '''
@@ -544,9 +587,17 @@ def test_single_optimizer():
     initial_param_values_tensor = torch.tensor(initial_param_values)
 
 
-    # try adam for 50 iterations, looking at jacobian & x & fun(x)
-    res = minimize(objective, initial_param_values, method=adam, 
-                        options={"maxiter": 50, "learning_rate":0.001, "eps":1e-5})
+    # try adam for 1000 iterations, looking at jacobian & x & fun(x)
+    if callback==True:
+        res = minimize(objective, initial_param_values, method='Nelder-Mead', callback=saveIntermResult,
+                        options={"maxiter": 1000, "eps":1e-5})
+        print(fun_all)
+        fun_all.clear()
+        global nit
+        nit = 0
+    else:
+        res = minimize(objective, initial_param_values, method='Nelder-Mead',
+                        options={"maxiter": 1000, "eps":1e-5})
 
 def test_bounds():
     '''
@@ -627,10 +678,6 @@ if __name__ == "__main__":
     
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
-    test_bounds()
-    #test_several_optimizers()
-    #test_single_optimizer()
-    print(f"total runtime: {np.round((time.time()-start)/60,2)}min") 
+    run_all_optimizer_experiments()
+    print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
     # die ersten 92 configs: 2h runtime
-
-    #opt = torch.optim.Adam()
