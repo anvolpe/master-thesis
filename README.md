@@ -28,3 +28,6 @@ Python 3.11.7 is the version the experiments were run on.
 
 #### Disclaimer of Warranty 
 Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.
+
+### Experiment Settings
+For detailed descriptions of the attributes and parameters used in this project, please refer to the experiment_settings.txt file. This file contains information about the attributes we utilized, as well as the available parameters for each optimizer employed in the experiments.
