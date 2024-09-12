@@ -234,8 +234,6 @@ def extract_optimizer_data(json_data,use_nits=True):
     
     return mean_optimizer_data, mean_gradient_based_data, mean_gradient_free_data, optimizer_data
 
-
-
 def boxplot_fun_values_per_optimizers(data, opt):
     '''
         Only works if iterations are 100, 500 and 1000
@@ -268,18 +266,132 @@ def boxplot_fun_values_per_optimizers(data, opt):
     plt.close()
     
 
+def get_conf_ids(data_type, num_data_points, s_rank):
+    data = []
+    conf_id_list = []
+    file_path = "Code/entangled_qnn_training-main/data/configDict.json"
+    with open(file_path, 'r') as file:
+        try:
+            data = json.load(file)
+            for i in range(len(data)):
+                if(data[str(i)]["data_type"]==data_type and data[str(i)]["num_data_points"]==num_data_points and data[str(i)]["s_rank"]==s_rank):
+                    conf_id_list.append(i)
+            print(conf_id_list)
+        except json.JSONDecodeError:
+            print(f"Fehler beim Laden der Datei: {file_path}")
+    return(conf_id_list)
+    
+
+def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank, max_iter, opt, databatch):
+    '''
+        For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
+        config id if the config_id fullfills data_type, num_data_points, s_rank 
+        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
+        num_data_points (String): 1,2,3,4
+        s_rank (String): 1,2,3,4
+    '''
+    # determine all config_ids that fulfill (data_type, num_data_points, s_rank)
+    conf_id_list = get_conf_ids(data_type, num_data_points, s_rank)
+    all_data = {}
+    for id in conf_id_list:
+        all_data[id] = []
+        for filename in os.listdir(directory):
+            if filename.endswith('.json') and filename.startswith(f'conf_{id}_'):
+                file_path = os.path.join(directory, filename)
+                print(f"Lade Datei: {file_path}")
+                with open(file_path, 'r') as file:
+                    try:
+                        all_data[id].append(json.load(file))
+                    except json.JSONDecodeError:
+                        print(f"Fehler beim Laden der Datei: {file_path}")
+        if not all_data:
+            print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
+    print(all_data.keys())
+
+    fun_values = {}
+    for id in conf_id_list:
+        for entry in all_data[id]:
+            fun_values[id] = []
+            if isinstance(entry, dict):
+                # alle databatches durchgehen
+                for batch_key in entry:
+                    if batch_key == f'databatch_{databatch}':
+                        print(f"Verarbeite Datenbatch: {batch_key}")
+                        if opt in entry[batch_key]:
+                            print(f"Verarbeite Optimierer: {opt}")
+                            # get data for optimizer opt
+                            batch_data = entry[batch_key][opt]
+                            for key in batch_data:
+                                data = batch_data[key]
+                                
+                                # data muss dictionary sein und schlüssel enthalten
+                                if isinstance(data, dict):
+                                    nit = data.get("nit", None)
+                                    fun = data.get("fun", None)
+                                    iter = data.get("maxiter", None)
+                                    callback = data.get("callback", None)
+                                    if(iter == max_iter):
+                                        if nit is not None and fun is not None:
+                                            try:
+                                                nit = int(nit)
+                                                fun = float(fun)
+                                                callback.append(fun)
+                                                fun_values[id].append((nit, callback))
+                                            except ValueError as e:
+                                                print(f"Fehler beim Konvertieren der Daten: {e}")
+                                        else:
+                                            print(f"Fehlende Schlüssel in den Daten: {data}")
+                                else:
+                                    print(f"Unerwartete Datenstruktur: {data}")
+                        else:
+                            print(f"Optimierer {opt} nicht in den Datenbatch {batch_key} gefunden")
+            else:
+                print("Eintrag ist kein Dictionary")
+    return fun_values
+
+def convergence_plot_per_optimizer(data, opt, data_type, num_data_points, s_rank, maxiter, databatch):
+    save_path = 'qnn-experiments/experimental_results/results/convergence_plots/'
+    title = f'Convergence plot for {opt}, maxiter = {maxiter}, databatch = {databatch}\n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
+    #colors for each config id
+    cmap = matplotlib.cm.get_cmap('Spectral')
+    plt.figure()
+    for id in range(len(data)):
+        color = cmap(id/len(data))
+        label = f"Config {id}"
+        for i in range(len(data[id])):
+            values = data[id][i]
+            y = values[1]
+            x = np.append(np.arange(10,values[0], 10), values[0])
+            if(i==0):
+                plt.plot(x,y, color=color, label=label)
+            else:
+                plt.plot(x,y, color=color)
+    plt.xlabel('Iterations')
+    plt.ylabel('Function value')
+    plt.legend()
+    plt.title(title)
+    plt.grid(True)
+    file_path = os.path.join(save_path, f'{opt}_convergence_fun.png') # TODO: better naming system
+    plt.savefig(file_path)
+    plt.close()
+
+
+
 if __name__ == "__main__":
+    path = 'experimental_results/results/optimizer_results'
+    get_conf_ids("random", "1", "1")
+    call_back_values = load_and_extract_callback_data(path,"random", "1", "1",100,'nelder_mead',0)
+    convergence_plot_per_optimizer(call_back_values, 'nelder_mead', 'random', '1', '1', 100, 0)
     #path = "experimental_results/results/optimizer_results/bounds/"
     #data = load_json_files(path)
     #print(data[0]["conf_id"])
     #res_min,res_max,res = extract_solution_x_data(data)
     #create_min_max_boxplots(res_min, res_max, 'qnn-experiments/experimental_results/results/box_plots/bounds/no_outliers')
-
-    path = 'experimental_results/results/2024-07-19_allConfigs_allOpt'
+    '''path = 'experimental_results/results/2024-07-19_allConfigs_allOpt'
     json_data = load_json_files(path)
     _,_,_,data = extract_optimizer_data(json_data,use_nits=False)
 
     optimizers = ["nelder_mead", "powell", "cobyla", "bfgs", "slsqp","sgd", "adam", "rmsprop", "dual_annealing"]
     for opt in optimizers:
-        boxplot_fun_values_per_optimizers(data, opt)
+        boxplot_fun_values_per_optimizers(data, opt)'''
     
