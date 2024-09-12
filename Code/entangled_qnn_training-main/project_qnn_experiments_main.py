@@ -19,13 +19,16 @@ import pandas as pd
 from scipy.optimize import minimize, dual_annealing
 import re
 
+no_of_runs = 1
+#no_of_runs = 10
+
 num_layers = 1
 num_qubits = 2
 dimensions = 6
-#max_iters = [100,500,1000]
-max_iters = [1000]
-tols = [1e-5]
-#tols = [1e-5, 1e-10]
+max_iters = [100,500,1000]
+#max_iters = [1000]
+#tols = [1e-5]
+tols = [1e-5, 1e-10]
 #tols = [1e-10, 1e-15] schlechte ergebnisse, 1e-5 viel besser
 #tols = [1e-2, 1e-5]
 #bounds = [(0,2*np.pi)*dimensions]
@@ -42,7 +45,8 @@ def saveIntermResult(intermediate_result: OptimizeResult):
     global nit
     nit += 1
     if(nit%10==0):
-        fun_all.append(fun)
+        fun_all.append(float(fun))
+        
 
 def nelder_mead_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient-free"}
@@ -61,13 +65,14 @@ def nelder_mead_experiment(objective,initial_param_values,bounds=None):
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
                 #global fun_all
-                results[run_n]["callback"] = fun_all
+                results[run_n]["callback"] = list(fun_all)
                 fun_all.clear()
                 global nit 
                 nit = 0
                 run_n += 1
     return results
 
+# callback not supported
 def cobyla_experiment(objective,initial_param_values,bounds=None):
     results = {"type" : "gradient-free"}
     run_n = 0
@@ -84,11 +89,6 @@ def cobyla_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
-                global fun_all
-                results[run_n]["callback"] = fun_all
-                fun_all.clear()
-                global nit 
-                nit = 0
                 run_n += 1
     return results
 
@@ -109,9 +109,7 @@ def bfgs_experiment(objective,initial_param_values,bounds=None):
                     # result info
                     for attribute in res.keys():
                         results[run_n][attribute] = str(res[attribute])
-                    global fun_all
-                    print(fun_all)
-                    results[run_n]["callback"] = fun_all
+                    results[run_n]["callback"] = list(fun_all)
                     fun_all.clear()
                     global nit 
                     nit = 0
@@ -125,7 +123,7 @@ def powell_experiment(objective,initial_param_values,bounds=None):
         for ftol in tols:
             for xtol in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="Powell", bounds=bounds,   callback=saveIntermResult,
+                res = minimize(objective, initial_param_values, method="Powell", bounds=bounds, callback=saveIntermResult,
                         options={"maxiter": max_iter, "ftol":ftol, "xtol":xtol})
                 duration = time.time() - start
                 # fill results dict
@@ -134,14 +132,14 @@ def powell_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
-                global fun_all
-                results[run_n]["callback"] = fun_all
+                results[run_n]["callback"] = list(fun_all)
                 fun_all.clear()
                 global nit 
                 nit = 0
                 run_n += 1
     return results
 
+# Callback not supported
 def slsqp_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient"} #TODO: stimmt das?
     run_n = 0
@@ -177,15 +175,14 @@ def sgd_experiment(objective,initial_param_values,opt,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
-                global fun_all
-                results[run_n]["callback"] = fun_all
+                results[run_n]["callback"] = list(fun_all)
                 fun_all.clear()
                 global nit 
                 nit = 0
                 run_n += 1
     return results
 
-# gibt nicht direkt sowas wie ftol und eps
+# 
 def dual_annealing_experiment(objective,initial_param_values,bounds=default_bounds):
     results = {"type": "gradient-free"} 
     run_n = 0
@@ -201,8 +198,7 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
-                global fun_all
-                results[run_n]["callback"] = fun_all
+                results[run_n]["callback"] = list(fun_all)
                 fun_all.clear()
                 global nit 
                 nit = 0
@@ -415,7 +411,7 @@ def run_all_optimizer_experiments():
             result_dict["unitary"] = unitary_string
             
             n = 0
-            for run_id in range(10):
+            for run_id in range(no_of_runs):
                 start = time.time()
                 for i in range(len(databatches)): 
                     data_points = databatches[i]  
