@@ -335,7 +335,8 @@ def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank
                                             try:
                                                 nit = int(nit)
                                                 fun = float(fun)
-                                                callback.append(fun)
+                                                if(len(callback)*10 != nit):
+                                                    callback.append(fun)
                                                 fun_values[id].append((nit, callback))
                                             except ValueError as e:
                                                 print(f"Fehler beim Konvertieren der Daten: {e}")
@@ -355,8 +356,10 @@ def convergence_plot_per_optimizer(data, opt, data_type, num_data_points, s_rank
     #colors for each config id
     cmap = matplotlib.cm.get_cmap('Spectral')
     plt.figure()
-    for id in range(len(data)):
-        color = cmap(id/len(data))
+    c = 0
+    for id in data.keys():
+        color = cmap(c/len(data))
+        c += 1
         label = f"Config {id}"
         for i in range(len(data[id])):
             values = data[id][i]
@@ -371,7 +374,7 @@ def convergence_plot_per_optimizer(data, opt, data_type, num_data_points, s_rank
     plt.legend()
     plt.title(title)
     plt.grid(True)
-    file_path = os.path.join(save_path, f'{opt}_convergence_fun.png') # TODO: better naming system
+    file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png') # TODO: better naming system
     plt.savefig(file_path)
     plt.close()
 
@@ -379,9 +382,14 @@ def convergence_plot_per_optimizer(data, opt, data_type, num_data_points, s_rank
 
 if __name__ == "__main__":
     path = 'experimental_results/results/optimizer_results'
-    get_conf_ids("random", "1", "1")
-    call_back_values = load_and_extract_callback_data(path,"random", "1", "1",100,'nelder_mead',0)
-    convergence_plot_per_optimizer(call_back_values, 'nelder_mead', 'random', '1', '1', 100, 0)
+    optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs']
+    print(get_conf_ids("random", "1", "4"))
+    for opt in optimizers:
+        call_back_values = load_and_extract_callback_data(path,"random", "1", "4",100,opt,1) # result: dictionary, where keys are config ids and values are list of tuples: (nit, fun_values)
+        print(call_back_values.keys())
+        convergence_plot_per_optimizer(call_back_values, opt, 'random', '1', '4', 100, 1)
+        print(opt, "ok")
+
     #path = "experimental_results/results/optimizer_results/bounds/"
     #data = load_json_files(path)
     #print(data[0]["conf_id"])
