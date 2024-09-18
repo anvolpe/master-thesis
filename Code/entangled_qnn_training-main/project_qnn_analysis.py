@@ -385,9 +385,9 @@ if __name__ == "__main__":
     optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs']
     print(get_conf_ids("random", "1", "4"))
     for opt in optimizers:
-        call_back_values = load_and_extract_callback_data(path,"random", "1", "4",100,opt,1) # result: dictionary, where keys are config ids and values are list of tuples: (nit, fun_values)
+        call_back_values = load_and_extract_callback_data(path,"random", "1", "4",1000,opt,1) # result: dictionary, where keys are config ids and values are list of tuples: (nit, fun_values)
         print(call_back_values.keys())
-        convergence_plot_per_optimizer(call_back_values, opt, 'random', '1', '4', 100, 1)
+        convergence_plot_per_optimizer(call_back_values, opt, 'random', '1', '4', 1000, 1)
         print(opt, "ok")
 
     #path = "experimental_results/results/optimizer_results/bounds/"
