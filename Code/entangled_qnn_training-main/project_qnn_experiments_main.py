@@ -43,10 +43,30 @@ nit = 0
 def saveIntermResult(intermediate_result: OptimizeResult):
     fun=intermediate_result.fun
     global nit
-    nit += 1
     if(nit%10==0):
         fun_all.append(float(fun))
-        
+    nit += 1
+
+#create individual callback for specific objective function. objectivew function is the used to calculate iterm Result
+def getCallback(objective_func):
+#use signature with xk as current Vector and CALCulate interm Result
+#for methods that dont support OptimizeResult Signature (slsqp, cobyla)
+    def saveIntermResult_Calc(xk):
+        fun=objective_func(xk)
+        global nit
+        if(nit%10==0):
+            fun_all.append(float(fun))
+        nit += 1
+    return saveIntermResult_Calc
+
+#use specific callback Signature for dual annealing
+#(x,f,context) with f being the current function value
+def saveIntermResult_duAn(x, f, context):
+    fun=f
+    global nit
+    if(nit%10==0):
+        fun_all.append(float(fun))
+    nit +=1 
 
 def nelder_mead_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient-free"}
@@ -79,9 +99,10 @@ def cobyla_experiment(objective,initial_param_values,bounds=None):
     for max_iter in max_iters:
         for tol in tols:
             for catol in tols:
+                temp_callback=getCallback(objective_func=objective)
                 start = time.time()
                 res = minimize(objective, initial_param_values, method="COBYLA", bounds=bounds,  
-                        options={"maxiter": max_iter, "tol":tol, "catol":catol})
+                        options={"maxiter": max_iter, "tol":tol, "catol":catol}, callback=temp_callback)
                 duration = time.time() - start
                 # fill results dict
                 # specifications of this optimizer run
@@ -89,6 +110,10 @@ def cobyla_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                results[run_n]["callback"] = list(fun_all)
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
@@ -146,9 +171,10 @@ def slsqp_experiment(objective,initial_param_values,bounds=None):
     for max_iter in max_iters:
         for ftol in tols:
             for eps in tols:
+                temp_callback=getCallback(objective_func=objective)
                 start = time.time()
                 res = minimize(objective, initial_param_values, method="SLSQP", bounds=bounds,  
-                        options={"maxiter": max_iter, "ftol":ftol, "eps":eps})
+                        options={"maxiter": max_iter, "ftol":ftol, "eps":eps}, callback=temp_callback)
                 duration = time.time() - start
                 # fill results dict
                 # specifications of this optimizer run
@@ -156,6 +182,10 @@ def slsqp_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                results[run_n]["callback"] = list(fun_all)
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
@@ -190,7 +220,7 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
         #for tol in tols:
         #for catol in tols:
                 start = time.time()
-                res = dual_annealing(objective, bounds, maxiter=max_iter) # TODO: callback
+                res = dual_annealing(objective, bounds, maxiter=max_iter, callback=saveIntermResult_duAn) # TODO: callback
                 duration = time.time() - start
                 # fill results dict
                 # specifications of this optimizer run
@@ -198,6 +228,12 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                results[run_n]["callback"] = list(fun_all)
+                #print("es folgen die funktionswerte von dual annealing")
+                #print(fun_all)
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
