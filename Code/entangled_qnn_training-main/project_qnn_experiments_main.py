@@ -110,6 +110,10 @@ def cobyla_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                results[run_n]["callback"] = list(fun_all)
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
@@ -178,6 +182,10 @@ def slsqp_experiment(objective,initial_param_values,bounds=None):
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
+                results[run_n]["callback"] = list(fun_all)
+                fun_all.clear()
+                global nit 
+                nit = 0
                 run_n += 1
     return results
 
