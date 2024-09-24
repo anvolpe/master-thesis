@@ -43,9 +43,9 @@ nit = 0
 def saveIntermResult(intermediate_result: OptimizeResult):
     fun=intermediate_result.fun
     global nit
-    nit += 1
     if(nit%10==0):
         fun_all.append(float(fun))
+    nit += 1
 
 #create individual callback for specific objective function. objectivew function is the used to calculate iterm Result
 def getCallback(objective_func):
@@ -54,19 +54,24 @@ def getCallback(objective_func):
     def saveIntermResult_Calc(xk):
         fun=objective_func(xk)
         global nit
-        nit += 1
         if(nit%10==0):
             fun_all.append(float(fun))
+        nit += 1
     return saveIntermResult_Calc
 
 #use specific callback Signature for dual annealing
 #(x,f,context) with f being the current function value
 def saveIntermResult_duAn(x, f, context):
     fun=f
+    print("fun-value")
+    print(fun)
+    print(float(fun))
     global nit
-    nit += 1
+    print(nit)
     if(nit%10==0):
-        fun_all.append(float(fun))    
+        fun_all.append(float(fun))
+    nit +=1 
+    print(fun_all)
 
 def nelder_mead_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient-free"}
@@ -229,6 +234,8 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
                 results[run_n]["callback"] = list(fun_all)
+                #print("es folgen die funktionswerte von dual annealing")
+                #print(fun_all)
                 fun_all.clear()
                 global nit 
                 nit = 0
