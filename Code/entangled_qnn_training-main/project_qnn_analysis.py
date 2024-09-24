@@ -267,6 +267,12 @@ def boxplot_fun_values_per_optimizers(data, opt):
     
 
 def get_conf_ids(data_type, num_data_points, s_rank):
+    '''
+        Returns a list of config ids that correspond to data_type, num_data_points and s_rank.
+        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
+        num_data_points (String): 1,2,3,4
+        s_rank (String): 1,2,3,4
+    '''
     data = []
     conf_id_list = []
     file_path = "Code/entangled_qnn_training-main/data/configDict.json"
@@ -276,22 +282,15 @@ def get_conf_ids(data_type, num_data_points, s_rank):
             for i in range(len(data)):
                 if(data[str(i)]["data_type"]==data_type and data[str(i)]["num_data_points"]==num_data_points and data[str(i)]["s_rank"]==s_rank):
                     conf_id_list.append(i)
-            print(conf_id_list)
         except json.JSONDecodeError:
             print(f"Fehler beim Laden der Datei: {file_path}")
     return(conf_id_list)
-    
 
-def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank, max_iter, opt, databatch):
+def load_json_data(directory, conf_id_list):
     '''
-        For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
-        config id if the config_id fullfills data_type, num_data_points, s_rank 
-        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
-        num_data_points (String): 1,2,3,4
-        s_rank (String): 1,2,3,4
+        Load Json-data for each config_id in conf_id_list from files saved in directory.
+        File names start with "conf_{config_id}_" and end with ".json".
     '''
-    # determine all config_ids that fulfill (data_type, num_data_points, s_rank)
-    conf_id_list = get_conf_ids(data_type, num_data_points, s_rank)
     all_data = {}
     for id in conf_id_list:
         all_data[id] = []
@@ -306,14 +305,157 @@ def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank
                         print(f"Fehler beim Laden der Datei: {file_path}")
         if not all_data:
             print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
-    print(all_data.keys())
+    return all_data
+
+def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_points, s_rank):
+    '''
+        For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
+        config id if the config_id fullfills data_type, num_data_points, s_rank. 
+        Exactly one of data_type, num_data_points or s_rank is None, hence callback data for all possible values of this parameter will be extracted.
+    
+        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
+        num_data_points (String): 1,2,3,4
+        s_rank (String): 1,2,3,4
+    '''
+    # check only one parameter (data_type, num_data_points, s_rank) is None:
+    param_values = {'data_type': ["random", "orthogonal", "non_lin_ind", "var_s_rank"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
+    param_names = ['data_type', 'num_data_points', 's_rank']
+    params = [data_type, num_data_points, s_rank]
+    none_indices = [i for i in range(len(params)) if params[i] == None]
+    if(len(none_indices)>1):
+        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
+    
+    # determine all config_ids that fulfill (data_type, num_data_points, s_rank)
+    none_param = param_names[none_indices[0]]
+    values = param_values[none_param]
+    conf_id_list = {} # dictionary: for each possible value of the non-specified parameter a list of corresponding config_ids is saved
+    for value in values:
+        params_current = [value if v is None else v for v in params] #determine correct parameter values (substitute value for None)
+        conf_id_list[value] = get_conf_ids(data_type=params_current[0], num_data_points=params_current[1], s_rank=params_current[2])
+
+    # for each list in conf_id_list (i.e. each possible value of non-specified parameter) (and each databatch): determine a list of mean callback values
+    mean_fun_values = {}
+    max_nit_values = {}
+    for value in conf_id_list.keys():
+        print(value,conf_id_list[value])
+        all_data = load_json_data(directory, conf_id_list[value])
+        fun_values = []
+        nit_values = []
+        for id in conf_id_list[value]:
+            print(id)
+            for entry in all_data[id]:
+                if isinstance(entry, dict):
+                    # go through each databatch
+                    for batch_key in entry:
+                        if batch_key.startswith("databatch_"):
+                            print(f"Verarbeite Datenbatch: {batch_key}")
+                            if opt in entry[batch_key]:
+                                print(f"Verarbeite Optimierer: {opt}")
+                                # get data for optimizer opt
+                                batch_data = entry[batch_key][opt]
+                                for key in batch_data:
+                                    data = batch_data[key]
+                                    
+                                    # data must be dictionary and contain keys
+                                    if isinstance(data, dict):
+                                        nit = data.get("nit", None) # nit: number of total iterations needed to reach optimal fun-value
+                                        fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
+                                        iter = data.get("maxiter", None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
+                                        callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
+                                        if(iter == max_iter):
+                                            if nit is not None and fun is not None:
+                                                try:
+                                                    nit = int(nit)
+                                                    fun = float(fun)
+                                                    if(len(callback)*10 != nit): # append optimal fun value, if it isn't already the last value in callback-list
+                                                        callback.append(fun)
+                                                    fun_values.append(callback) 
+                                                    nit_values.append(nit)
+                                                except ValueError as e:
+                                                    print(f"Fehler beim Konvertieren der Daten: {e}")
+                                            else:
+                                                print(f"Fehlende Schlüssel in den Daten: {data}")
+                                    else:
+                                        print(f"Unerwartete Datenstruktur: {data}")
+                            else:
+                                print(f"Optimierer {opt} nicht in den Datenbatch {batch_key} gefunden")
+                else:
+                    print("Eintrag ist kein Dictionary")
+        # compute mean of callback fun values over each config_id and each databatch per config_id
+        # for runs that used less iterations than others: fill those lists with the optimal fun value achieved
+        max_len = len(max(fun_values, key=len))
+        # pad right of each sublist of fun_values with optimal fun value to make it as long as the longest sublist
+        for sublist in fun_values:
+            opt_fun_val = sublist[-1]
+            sublist[:] = sublist + [opt_fun_val] * (max_len - len(sublist))
+        fun_arrays = [np.array(x) for x in fun_values]
+        mean_fun_values[value] = [np.mean(k) for k in zip(*fun_arrays)]
+        # compute maximum of total number of iterations (nit) for each config_id and each databatch per config_id
+        if nit_values.count(nit_values[0]) != len(nit_values):
+            print("INFO: Multiple number of total iterations found. Maximum of those values will be chosen.")
+        max_nit_values[value] = np.max(nit_values)
+    return mean_fun_values,max_nit_values
+
+def convergence_plot_per_optimizer(mean_fun_data, mean_nit_data, opt, maxiter, data_type, num_data_points, s_rank):
+    '''
+        Convergence plot for mean callback values where exactly one parameter of data_type, num_data_points or s_rank is None and thus variable.
+        mean_fun_data is a dictionary where the possible values for the variable parameter are the key and each value saved for a key is a list of fun_values
+        mean_nit_data is a list of the corresponding number of iterations for the found optimal fun value (last value in each list in mean_fun_data)
+    '''
+    save_path = 'qnn-experiments/experimental_results/results/convergence_plots/'
+    title = f'Convergence plot for {opt}, maxiter = {maxiter}, \n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
+    #determine what parameter is variable (i.e. None in argument list) and check that only one parameter is None
+    param_names = ['data_type', 'num_data_points', 's_rank']
+    params = [data_type, num_data_points, s_rank]
+    none_indices = [i for i in range(len(params)) if params[i] == None]
+    if(len(none_indices)>1):
+        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
+    none_param = param_names[none_indices[0]]
+
+    #colors for each config id
+    cmap = matplotlib.cm.get_cmap('Spectral')
+    plt.figure()
+    c = 0 # needed to determine correct color
+    for param_value in mean_fun_data.keys():
+        color = cmap(c/len(mean_fun_data))
+        label = f"{none_param} = {param_value}"
+        y = mean_fun_data[param_value]
+        x = np.append(np.arange(10,mean_nit_data[param_value], 10), mean_nit_data[param_value])
+        plt.plot(x,y, color=color, label=label)
+        c += 1
+    plt.xlabel('Iterations')
+    plt.ylabel('Function value')
+    plt.legend()
+    plt.title(title)
+    plt.grid(True)
+    file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png') # TODO: better naming system
+    plt.savefig(file_path)
+    plt.close()
+
+def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank, max_iter, opt, databatch):
+    '''
+        DEPRECATED
+        For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
+        config id if the config_id fullfills data_type, num_data_points, s_rank. 
+        If one of data_type, num_data_points or s_rank is None callback data for all possible values of this parameter will be extracted.
+        Only one of those parameters can be None.
+        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
+        num_data_points (String): 1,2,3,4
+        s_rank (String): 1,2,3,4
+    '''
+    
+    # determine all config_ids that fulfill (data_type, num_data_points, s_rank)
+    conf_id_list = get_conf_ids(data_type, num_data_points, s_rank)
+
+    # load json data for each config_id
+    all_data = load_json_data(directory, conf_id_list)
 
     fun_values = {}
     for id in conf_id_list:
         for entry in all_data[id]:
             fun_values[id] = []
             if isinstance(entry, dict):
-                # alle databatches durchgehen
+                # go through each databatch
                 for batch_key in entry:
                     if batch_key == f'databatch_{databatch}':
                         print(f"Verarbeite Datenbatch: {batch_key}")
@@ -324,20 +466,20 @@ def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank
                             for key in batch_data:
                                 data = batch_data[key]
                                 
-                                # data muss dictionary sein und schlüssel enthalten
+                                # data must be dictionary and contain keys
                                 if isinstance(data, dict):
-                                    nit = data.get("nit", None)
-                                    fun = data.get("fun", None)
-                                    iter = data.get("maxiter", None)
-                                    callback = data.get("callback", None)
+                                    nit = data.get("nit", None) # nit: number of total iterations needed to reach optimal fun-value
+                                    fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
+                                    iter = data.get("maxiter", None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
+                                    callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
                                     if(iter == max_iter):
                                         if nit is not None and fun is not None:
                                             try:
                                                 nit = int(nit)
                                                 fun = float(fun)
-                                                if(len(callback)*10 != nit):
+                                                if(len(callback)*10 != nit): # append optimal fun value, if it isn't already the last value in callback-list
                                                     callback.append(fun)
-                                                fun_values[id].append((nit, callback))
+                                                fun_values[id].append((nit, callback)) 
                                             except ValueError as e:
                                                 print(f"Fehler beim Konvertieren der Daten: {e}")
                                         else:
@@ -350,7 +492,10 @@ def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank
                 print("Eintrag ist kein Dictionary")
     return fun_values
 
-def convergence_plot_per_optimizer(data, opt, data_type, num_data_points, s_rank, maxiter, databatch):
+def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_rank, maxiter, databatch):
+    '''
+        DEPRECATED
+    '''
     save_path = 'qnn-experiments/experimental_results/results/convergence_plots/'
     title = f'Convergence plot for {opt}, maxiter = {maxiter}, databatch = {databatch}\n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
     #colors for each config id
@@ -383,12 +528,15 @@ def convergence_plot_per_optimizer(data, opt, data_type, num_data_points, s_rank
 if __name__ == "__main__":
     path = 'experimental_results/results/optimizer_results'
     optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs']
-    print(get_conf_ids("random", "1", "4"))
     for opt in optimizers:
-        call_back_values = load_and_extract_callback_data(path,"random", "1", "4",1000,opt,1) # result: dictionary, where keys are config ids and values are list of tuples: (nit, fun_values)
-        print(call_back_values.keys())
-        convergence_plot_per_optimizer(call_back_values, opt, 'random', '1', '4', 1000, 1)
+        fun_values, nit_values = extract_mean_callback_data(path,1000,opt,"random", "1", None) 
+        print({opt})
+        for i in fun_values.keys():
+            print(nit_values[i], len(fun_values[i])*10)
+        convergence_plot_per_optimizer(fun_values,nit_values, opt, 1000, 'random', '1', None)
         print(opt, "ok")
+
+    
 
     #path = "experimental_results/results/optimizer_results/bounds/"
     #data = load_json_files(path)

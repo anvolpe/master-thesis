@@ -212,11 +212,17 @@ if __name__ == "__main__":
     #generate_and_save_testLandscape()
     #run_single_optimizer_experiment()
     #testMinimizeBounds()
-    s = "[0.001 1.456 40.20202]"
-    x = [float(idx) for idx in s.strip("[]").split(' ')]
-    x_min = np.min(x)
-    x_max = np.max(x)
-    print(x_min, x_max)
+    values = [[1,2,3,4,5], [3,4], [0,1,2]]
+    max_len = len(max(values, key=len))
+    print(max_len)
+    # pad right of each sublist of fun_values with optimal fun value to make it as long as the longest sublist
+    for sublist in values:
+        opt_fun_val = sublist[-1]
+        sublist[:] = sublist + [opt_fun_val] * (max_len - len(sublist))
+    print(values)
+    for sublist in values:
+        print(len(sublist))
+
 
     
     
