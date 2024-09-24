@@ -63,15 +63,10 @@ def getCallback(objective_func):
 #(x,f,context) with f being the current function value
 def saveIntermResult_duAn(x, f, context):
     fun=f
-    print("fun-value")
-    print(fun)
-    print(float(fun))
     global nit
-    print(nit)
     if(nit%10==0):
         fun_all.append(float(fun))
     nit +=1 
-    print(fun_all)
 
 def nelder_mead_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient-free"}
