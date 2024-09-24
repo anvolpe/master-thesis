@@ -182,7 +182,7 @@ def sgd_experiment(objective,initial_param_values,opt,bounds=None):
                 run_n += 1
     return results
 
-# 
+# TODO: callback
 def dual_annealing_experiment(objective,initial_param_values,bounds=default_bounds):
     results = {"type": "gradient-free"} 
     run_n = 0
@@ -198,10 +198,6 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 # result info
                 for attribute in res.keys():
                     results[run_n][attribute] = str(res[attribute])
-                results[run_n]["callback"] = list(fun_all)
-                fun_all.clear()
-                global nit 
-                nit = 0
                 run_n += 1
     return results
 
