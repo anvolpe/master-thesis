@@ -370,11 +370,13 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
                                         iter = data.get("maxiter", None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
                                         callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
                                         if(iter == max_iter):
+                                            if nit is None or opt == 'dual_annealing': #cobyla doesn't save nit and dual_annealing saves the wrong value (max_iter) for nit
+                                                nit = (len(callback)-1)*stepsize
                                             if nit is not None and fun is not None:
                                                 try:
                                                     nit = int(nit)
                                                     fun = float(fun)
-                                                    if(len(callback)*stepsize != nit): # append optimal fun value, if it isn't already the last value in callback-list
+                                                    if(callback[-1] != fun): # append optimal fun value, if it isn't already the last value in callback-list
                                                         callback.append(fun)
                                                     fun_values.append(callback) 
                                                     nit_values.append(nit)
@@ -441,6 +443,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         plt.plot(x,y, color=color, label=label)
         print(param_value, "ok")
         c += 1
+    plt.ylim(0,1)
     plt.xlabel('Iterations')
     plt.ylabel('Function value')
     plt.legend()
@@ -543,15 +546,35 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
 
 
 
+
 if __name__ == "__main__":
     
-    optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing']#,'cobyla']
+    optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
     datatype_list = ['random', 'orthogonal', 'non_lin_ind']#, 'var_s_rank']
     num_data_points_list = ['1', '2', '3', '4']
     s_rank_list = ['1', '2', '3', '4']
     origin_path = 'experimental_results/results/optimizer_results/'
+    
 
     # convergence plots for variable s_rank, but fixed datatype and num_data_points
+    for datatype in datatype_list:
+        for num_data_points in num_data_points_list:
+            save_path = f'qnn-experiments/experimental_results/results/convergence_plots/datatype/{datatype}/num_data_points/{num_data_points}'
+            for opt in optimizers:
+                fun_values, nit_values = extract_mean_callback_data(origin_path,1000,opt,datatype, num_data_points,None) 
+                convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, 1000, datatype, num_data_points, None)
+                print(opt, "ok")
+
+    # convergence plots for variable num_data_points, but fixed datatype and s_rank
+    for datatype in datatype_list:
+        for s_rank in s_rank_list:
+            save_path = f'qnn-experiments/experimental_results/results/convergence_plots/datatype/{datatype}/s_rank/{s_rank}'
+            for opt in optimizers:
+                fun_values, nit_values = extract_mean_callback_data(origin_path,1000,opt,datatype, None, s_rank) 
+                convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, 1000, datatype, None, s_rank)
+                print(opt, "ok")   
+
+    # convergence plots for variabel datatype, but fixed num_data_points and s_rank
     for s_rank in s_rank_list:
         for num_data_points in num_data_points_list:
             save_path = f'qnn-experiments/experimental_results/results/convergence_plots/s_rank/{s_rank}/num_data_points/{num_data_points}'
