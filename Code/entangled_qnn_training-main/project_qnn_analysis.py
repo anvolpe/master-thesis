@@ -317,6 +317,13 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
         num_data_points (String): 1,2,3,4
         s_rank (String): 1,2,3,4
     '''
+    # Stepsize: Stepsize between Iterations whose fun value is saved in callback
+    # for Powell, BFGS and Dual Annealing: stepsize = 1 (every iteration)
+    # for all other optimizers: stepsize = 10 (every 10th iteration)
+    stepsize = 10
+    if opt in ['powell', 'bfgs', 'dual_annealing']:
+        stepsize = 1
+
     # check only one parameter (data_type, num_data_points, s_rank) is None:
     param_values = {'data_type': ["random", "orthogonal", "non_lin_ind", "var_s_rank"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
     param_names = ['data_type', 'num_data_points', 's_rank']
@@ -367,7 +374,7 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
                                                 try:
                                                     nit = int(nit)
                                                     fun = float(fun)
-                                                    if(len(callback)*10 != nit): # append optimal fun value, if it isn't already the last value in callback-list
+                                                    if(len(callback)*stepsize != nit): # append optimal fun value, if it isn't already the last value in callback-list
                                                         callback.append(fun)
                                                     fun_values.append(callback) 
                                                     nit_values.append(nit)
@@ -396,13 +403,23 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
         max_nit_values[value] = np.max(nit_values)
     return mean_fun_values,max_nit_values
 
-def convergence_plot_per_optimizer(mean_fun_data, mean_nit_data, opt, maxiter, data_type, num_data_points, s_rank):
+def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt, maxiter, data_type, num_data_points, s_rank):
     '''
         Convergence plot for mean callback values where exactly one parameter of data_type, num_data_points or s_rank is None and thus variable.
         mean_fun_data is a dictionary where the possible values for the variable parameter are the key and each value saved for a key is a list of fun_values
         mean_nit_data is a list of the corresponding number of iterations for the found optimal fun value (last value in each list in mean_fun_data)
     '''
-    save_path = 'qnn-experiments/experimental_results/results/convergence_plots/'
+    # create correct directory if it doesn't exist
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # Stepsize: Stepsize between Iterations whose fun value is saved in callback (influences x-axis of plot)
+    # for Powell, BFGS and Dual Annealing: stepsize = 1 (every iteration)
+    # for all other optimizers: stepsize = 10 (every 10th iteration)
+    stepsize = 10
+    if opt in ['powell', 'bfgs', 'dual_annealing']:
+        stepsize = 1
+
     title = f'Convergence plot for {opt}, maxiter = {maxiter}, \n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
     #determine what parameter is variable (i.e. None in argument list) and check that only one parameter is None
     param_names = ['data_type', 'num_data_points', 's_rank']
@@ -420,8 +437,9 @@ def convergence_plot_per_optimizer(mean_fun_data, mean_nit_data, opt, maxiter, d
         color = cmap(c/len(mean_fun_data))
         label = f"{none_param} = {param_value}"
         y = mean_fun_data[param_value]
-        x = np.append(np.arange(10,mean_nit_data[param_value], 10), mean_nit_data[param_value])
+        x = np.append(np.arange(0,(len(y)-1)*stepsize, stepsize), mean_nit_data[param_value])
         plt.plot(x,y, color=color, label=label)
+        print(param_value, "ok")
         c += 1
     plt.xlabel('Iterations')
     plt.ylabel('Function value')
@@ -526,15 +544,21 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
 
 
 if __name__ == "__main__":
-    path = 'experimental_results/results/optimizer_results'
-    optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs']
-    for opt in optimizers:
-        fun_values, nit_values = extract_mean_callback_data(path,1000,opt,"random", "1", None) 
-        print({opt})
-        for i in fun_values.keys():
-            print(nit_values[i], len(fun_values[i])*10)
-        convergence_plot_per_optimizer(fun_values,nit_values, opt, 1000, 'random', '1', None)
-        print(opt, "ok")
+    
+    optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing']#,'cobyla']
+    datatype_list = ['random', 'orthogonal', 'non_lin_ind']#, 'var_s_rank']
+    num_data_points_list = ['1', '2', '3', '4']
+    s_rank_list = ['1', '2', '3', '4']
+    origin_path = 'experimental_results/results/optimizer_results/'
+
+    # convergence plots for variable s_rank, but fixed datatype and num_data_points
+    for s_rank in s_rank_list:
+        for num_data_points in num_data_points_list:
+            save_path = f'qnn-experiments/experimental_results/results/convergence_plots/s_rank/{s_rank}/num_data_points/{num_data_points}'
+            for opt in optimizers:
+                fun_values, nit_values = extract_mean_callback_data(origin_path,1000,opt,None, num_data_points,s_rank) 
+                convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, 1000, None, num_data_points, s_rank)
+                print(opt, "ok")
 
     
 

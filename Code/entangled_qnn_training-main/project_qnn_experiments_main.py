@@ -34,8 +34,8 @@ tols = [1e-5, 1e-10]
 #bounds = [(0,2*np.pi)*dimensions]
 default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 #bounds = list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi))
-#learning_rates = [0.01, 0.001, 0.0001]
-learning_rates = [0.0001]
+learning_rates = [0.01, 0.001, 0.0001]
+#learning_rates = [0.0001]
 
 # Callback: Save every 10th intermediate results of each optimization
 fun_all = [] # array for callback function (save every 10th fun value during optimization)
@@ -45,6 +45,13 @@ def saveIntermResult(intermediate_result: OptimizeResult):
     global nit
     if(nit%10==0):
         fun_all.append(float(fun))
+    nit += 1
+
+# Callback variant: Save EVERY intermediate result (for Powell and BFGS)
+def saveIntermResultEvery(intermediate_result: OptimizeResult):
+    fun=intermediate_result.fun
+    global nit
+    fun_all.append(float(fun))
     nit += 1
 
 #create individual callback for specific objective function. objectivew function is the used to calculate iterm Result
@@ -61,11 +68,11 @@ def getCallback(objective_func):
 
 #use specific callback Signature for dual annealing
 #(x,f,context) with f being the current function value
+#WARNING: Every function value is saved, not just every 10th function value
 def saveIntermResult_duAn(x, f, context):
     fun=f
     global nit
-    if(nit%10==0):
-        fun_all.append(float(fun))
+    fun_all.append(float(fun))
     nit +=1 
 
 def nelder_mead_experiment(objective,initial_param_values,bounds=None):
@@ -125,7 +132,7 @@ def bfgs_experiment(objective,initial_param_values,bounds=None):
             for xrtol in tols:
                 for eps in tols:
                     start = time.time()
-                    res = minimize(objective, initial_param_values, method="BFGS", bounds=bounds,  callback=saveIntermResult,
+                    res = minimize(objective, initial_param_values, method="BFGS", bounds=bounds,  callback=saveIntermResultEvery,
                             options={"maxiter": max_iter, "gtol":gtol, "xrtol":xrtol, "eps":eps})
                     duration = time.time() - start
                     # fill results dict
@@ -148,7 +155,7 @@ def powell_experiment(objective,initial_param_values,bounds=None):
         for ftol in tols:
             for xtol in tols:
                 start = time.time()
-                res = minimize(objective, initial_param_values, method="Powell", bounds=bounds, callback=saveIntermResult,
+                res = minimize(objective, initial_param_values, method="Powell", bounds=bounds, callback=saveIntermResultEvery,
                         options={"maxiter": max_iter, "ftol":ftol, "xtol":xtol})
                 duration = time.time() - start
                 # fill results dict
@@ -164,7 +171,6 @@ def powell_experiment(objective,initial_param_values,bounds=None):
                 run_n += 1
     return results
 
-# Callback not supported
 def slsqp_experiment(objective,initial_param_values,bounds=None):
     results = {"type": "gradient"} #TODO: stimmt das?
     run_n = 0
@@ -212,7 +218,7 @@ def sgd_experiment(objective,initial_param_values,opt,bounds=None):
                 run_n += 1
     return results
 
-# TODO: callback
+
 def dual_annealing_experiment(objective,initial_param_values,bounds=default_bounds):
     results = {"type": "gradient-free"} 
     run_n = 0
@@ -220,7 +226,7 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
         #for tol in tols:
         #for catol in tols:
                 start = time.time()
-                res = dual_annealing(objective, bounds, maxiter=max_iter, callback=saveIntermResult_duAn) # TODO: callback
+                res = dual_annealing(objective, bounds, maxiter=max_iter, callback=saveIntermResult_duAn)
                 duration = time.time() - start
                 # fill results dict
                 # specifications of this optimizer run
@@ -237,36 +243,6 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 run_n += 1
     return results
 
-
-# nicht mehr nötig --> LÖSCHEN?
-def single_config_experiments(conf_id, data_type, num_data_points, s_rank, unitary, data_points):
-    # prepare csv file for experiment results
-    os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
-    file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_opt.csv", mode="w")
-    writer = csv.writer(file)
-    writer.writerow(["Optimizer", "Result", "Duration"])
-    # TODO: Infos zu Config speichern (alles was oben als Argument übergeben wird)
-    # evtl json statt csv? oder txt?
-    
-    # specifications of qnn
-    qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
-        
-    expected_output = torch.matmul(unitary, data_points)
-    y_true = expected_output.conj()
-
-    # objective function based on cost function of qnn 
-    def objective(x):
-        qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
-        cost = cost_func(data_points, y_true, qnn, device="cpu") 
-        return torch.tensor(cost.item())
-    # TODO: verschiedene inital_param_values ausprobieren und avg bilden? (zuerst schauen wie lang es dauert)
-    # same initial_param_values for all optimizers
-    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
-    initial_param_values_tensor = torch.tensor(initial_param_values) 
-
-    # alle optimierer experiments laufen lassen
-    # return ist jeweils result-dict (das auch alle Spezifikationen enthält?)
-    # das in der Datei conf_[conf_id]_opt.csv speichern
 
 def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_points, s_rank, unitary, data_points):
     '''
