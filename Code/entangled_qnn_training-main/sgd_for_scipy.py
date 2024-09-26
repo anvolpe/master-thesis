@@ -32,30 +32,13 @@ def sgd(
     
     x = x0
     velocity = np.zeros_like(x)
-    #x = torch.tensor(x0)
-    #velocity = torch.zeros_like(x)
-    #print("START")
-    #print("x",x)
-    #print("fun", fun(x))
-    #print("jac", approx_fprime(x,fun))
-    #fun_grad = grad(fun)
     for i in range(startiter, startiter + maxiter):
-        #g = jac(x)
-        g = approx_fprime(x,fun) # TODO: Besser machen! Braucht sehr lang. Mit torch.tensor irgendwie die Jacobi bestimmen/approx?
-        #g = torch.autograd.functional.jacobian(fun,x)
-        #g = fun_grad(x) 
-        if callback and callback(x):
+        g = approx_fprime(x,fun)
+        intermediate_result = OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
+        if callback and callback(intermediate_result):
             break
-
-        #velocity = torch.mul(mass,velocity) - torch.mul((1.0 - mass),g)
         velocity = mass*velocity-(1.0-mass)*g
-        #x = x + torch.mul(learning_rate,velocity)
         x = x+learning_rate*velocity
-
-    #print("END")
-    #print("x",x)
-    #print("fun", fun(x))
-    #print("jac", approx_fprime(x,fun))
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
 
@@ -91,7 +74,8 @@ def rmsprop(
         #g = torch.autograd.functional.jacobian(fun,x)
         g = approx_fprime(x,fun)  
         #g = fun_grad(x) 
-        if callback and callback(x):
+        intermediate_result = OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
+        if callback and callback(intermediate_result):
             break
 
         avg_sq_grad = avg_sq_grad * gamma + g**2 * (1 - gamma)
@@ -142,7 +126,8 @@ def adam(
         #print("Jacobian",g)
         #print("x", x)
         #print("fun(x)", fun(x))
-        if callback and callback(x):
+        intermediate_result = OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
+        if callback and callback(intermediate_result):
             break
 
         m = (1 - beta1) * g + beta1 * m  # first  moment estimate.
