@@ -10,7 +10,11 @@ experimental_results/results/2024-07-19_allConfigs_allOpt contains initial exper
 
 experimental_results/results/optimizer_results/bounds_2024-07-29 contains experimental results for different bounds (for x). 
 
-qnn-experiments/plots contains all plots (fun vs. max. iterations (boxplot), average fun vs. (actual) iterations, min and max x-value per bounds (boxplots))
+qnn-experiments/plots contains all plots (fun vs. max. iterations (boxplot), average fun vs. (actual) iterations, min and max x-value per bounds (boxplots) and convergence plots)
+
+So far only convergence plots for maxiter = 1000 exist.
+
+Convergence Plots are sorted such that folder names indicate which parameter (datatype, num-data-points and s-rank) are fixed and which value they have, i.e. all convergence plots where datatype is "random", num-data-points is 1 and s-rank is variable are in /qnn-experiments/plots/convergence_plots/maxiter = 1000/datatype/random/num_data_points/1.
 
 ## Dependencies
 
