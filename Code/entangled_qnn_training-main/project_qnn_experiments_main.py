@@ -277,13 +277,9 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
     
     # objective function based on cost function of qnn 
     def objective(x):
-        qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
+        qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) 
         cost = cost_func(data_points, y_true, qnn, device="cpu") 
         return cost.item()
-
-    # verschiedene inital_param_values ausprobieren und avg bilden? 
-    #initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
-    #initial_param_values_tensor = torch.tensor(initial_param_values)
 
     # run optimizer experiments
     sgd_optimizers = [sgd, rmsprop, adam]
@@ -293,6 +289,7 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
     # TODO: ProcessPoolExecutor: funktioniert nicht, weil pickle verwendet wird und objective eine lokal definierte Funktion ist 
     # (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
     # Multiprocessing (??) könnte funktionieren. Oder eigene Klasse??
+    # ODER objective function global definieren?
     # with ProcessPoolExecutor(cpu_count()) as exe:
     for opt in optimizers:
         if opt == sgd_experiment:
@@ -411,24 +408,25 @@ def run_all_optimizer_experiments():
     result_dict = {}
 
     for line in Lines:
-        if(line.strip() == "---"): # config has been fully read, run optimizer experiments for each data_point-tensor (5)
-            # setup dictionary for dumping info into json file later
-            date = datetime.now()
-            result_dict = {"date": date.strftime("%Y/%m/%d/, %H:%M:%S"), "conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
-            unitary_string = (
-                np.array2string(unitary.numpy(), separator=",")
-                .replace("\n", "")
-                .replace(" ", "")
-            )
-            result_dict["unitary"] = unitary_string
+        if(line.strip() == "---"): 
+            with ProcessPoolExecutor() as exe:
+                for run_id in range(no_of_runs):
+                    # config has been fully read, run optimizer experiments for each data_point-tensor (5)
+                    # setup dictionary for dumping info into json file later
+                    date = datetime.now()
+                    result_dict = {"date": date.strftime("%Y/%m/%d/, %H:%M:%S"), "conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
+                    unitary_string = (
+                        np.array2string(unitary.numpy(), separator=",")
+                        .replace("\n", "")
+                        .replace(" ", "")
+                    )
+                    result_dict["unitary"] = unitary_string
             
-            n = 0
-            with ProcessPoolExecutor(cpu_count()) as exe:
-                for run_id in range(no_of_runs): 
+                    n = 0 
                     start = time.time()
                     for i in range(len(databatches)): 
                         data_points = databatches[i]  
-                        # run all optimizer experiments for one config and each of its databatches (concurrently)
+                        #run all optimizer experiments for one config and each of its databatches (concurrently)
                         future = exe.submit(single_optimizer_experiment, conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
                         dict = future.result()
                         #if no concurrency is required, comment out previous two lines and uncomment following line
