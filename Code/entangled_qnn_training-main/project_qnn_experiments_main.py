@@ -19,8 +19,9 @@ import pandas as pd
 from scipy.optimize import minimize, dual_annealing
 import re
 
-no_of_runs = 1
+#no_of_runs = 1
 #no_of_runs = 10
+no_of_runs = 3 # for testing ProcessPoolExecutor
 
 num_layers = 1
 num_qubits = 2
@@ -36,6 +37,8 @@ default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 #bounds = list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 #learning_rates = [0.0001]
+
+#TODO: Extract up until including dual_annealing_experiment into new separate file
 
 # Callback: Save every 10th intermediate results of each optimization
 fun_all = [] # array for callback function (save every 10th fun value during optimization)
@@ -99,7 +102,7 @@ def nelder_mead_experiment(objective,initial_param_values,bounds=None):
                 run_n += 1
     return results
 
-# callback not supported
+
 def cobyla_experiment(objective,initial_param_values,bounds=None):
     results = {"type" : "gradient-free"}
     run_n = 0
@@ -307,7 +310,8 @@ def single_optimizer_experiment(conf_id, databatch_id, data_type, num_data_point
             result_dict[opt_name] = result
 
     return result_dict
-        
+
+#TODO: extract following operation into separate file     
 def single_config_experiment_bounds(conf_id, databatch_id, data_type, num_data_points, s_rank, unitary, data_points):
     '''
     Run all optimizer experiments for a single config & databatch combination
@@ -419,31 +423,35 @@ def run_all_optimizer_experiments():
             result_dict["unitary"] = unitary_string
             
             n = 0
-            for run_id in range(no_of_runs):
-                start = time.time()
-                for i in range(len(databatches)): 
-                    data_points = databatches[i]  
-                    dict = single_optimizer_experiment(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
-                    databatch_key = f"databatch_{i}"
-                    result_dict[databatch_key] = dict
-                    #print(conf_id, data_type, num_data_points, s_rank)
-                #write results to json file
-                duration = np.round((time.time()-start),2)
-                print(f"config {conf_id}: {duration/60}min")
-                result_dict["duration (s)"] = duration
-                os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
-                file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
-                json.dump(result_dict, file)
-            databatches = []
-            unitary = []
-            n += 1
+            with ProcessPoolExecutor(cpu_count()) as exe:
+                for run_id in range(no_of_runs): 
+                    start = time.time()
+                    for i in range(len(databatches)): 
+                        data_points = databatches[i]  
+                        # run all optimizer experiments for one config and each of its databatches (concurrently)
+                        future = exe.submit(single_optimizer_experiment, conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
+                        dict = future.result()
+                        #if no concurrency is required, comment out previous two lines and uncomment following line
+                        #dict = single_optimizer_experiment(conf_id, i, data_type, num_data_points, s_rank, unitary, data_points)
+                        databatch_key = f"databatch_{i}"
+                        result_dict[databatch_key] = dict
+                    #write results to json file
+                    duration = np.round((time.time()-start),2)
+                    print(f"config {conf_id}: {duration/60}min")
+                    result_dict["duration (s)"] = duration
+                    os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
+                    file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
+                    json.dump(result_dict, file)
+                databatches = []
+                unitary = []
+                n += 1
 
         else:
             var, val = line.split("=")
             if(var == "conf_id"): conf_id = int(val) 
             elif(var == "data_type"): data_type = val # random, orthogonal, non_lin_ind, var_s_rank
             elif(var == "num_data_points"): num_data_points = int(val) 
-            elif(var == "s_rank"): s_rank = int(s_rank) # Schmidt-Rank
+            elif(var == "s_rank"): s_rank = int(val) # Schmidt-Rank
             elif(var == "unitary"): 
                 val,_ = re.subn('\[|\]|\\n', '', val) 
                 unitary = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4))#unitary: 4x4 tensor
@@ -452,7 +460,7 @@ def run_all_optimizer_experiments():
                 #print(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4)))
                 databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) #data_points: 1x4x4 tensor
 
-
+#TODO: extract following operations into separate file
 def test_several_optimizers():
     '''
     Test function for conf_id 0 and data_batch_0 for several optimizers
@@ -591,7 +599,7 @@ def test_single_optimizer(callback: bool):
     initial_param_values_tensor = torch.tensor(initial_param_values)
 
 
-    # try adam for 1000 iterations, looking at jacobian & x & fun(x)
+    # try Nelder Mead for 1000 iterations to compare computational time with and without callback
     if callback==True:
         res = minimize(objective, initial_param_values, method='Nelder-Mead', callback=saveIntermResult,
                         options={"maxiter": 1000, "eps":1e-5})
