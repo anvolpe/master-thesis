@@ -373,7 +373,7 @@ def single_config_experiment_bounds(conf_id, databatch_id, data_type, num_data_p
 
     # for all bounds test all optimizers (except sgd, adam, rmsprop and bfgs, since no bounds can be specified)
     # maxiter = 1000, tol = 1e-5, learning rate = 0.001
-    optimizers = [nelder_mead_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, dual_annealing_experiment,gene]
+    optimizers = [nelder_mead_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, dual_annealing_experiment]
     i = 1
     for bounds in bound_batches:
         result_dict[f'bounds_{i}'] = {"bounds": bounds}
