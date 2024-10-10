@@ -18,10 +18,12 @@ import pyswarms as ps
 
 import re
 
+
 from project_qnn_experiments_optimizers import *
 
 #no_of_runs = 1
 no_of_runs = 10
+
 
 num_layers = 1
 num_qubits = 2
@@ -39,6 +41,7 @@ learning_rates = [0.01, 0.001, 0.0001]
 #learning_rates = [0.0001]
 
 
+
 def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches):
     '''
     Run all optimizer experiments for a single config & databatch combination
@@ -48,6 +51,7 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
     '''
     start = time.time()
     result_dict = {}
+
     for i in range(len(databatches)):
         data_points = databatches[i]
         databatch_key = f"databatch_{i}"
@@ -106,6 +110,7 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
         # Multiprocessing (??) könnte funktionieren. Oder eigene Klasse??
         #with ProcessPoolExecutor(cpu_count()) as exe:
         #with multiprocessing.pool.Pool() as pool:
+
         for opt in optimizers:
             if opt == sgd_experiment:
                 for variant in sgd_optimizers:
@@ -180,6 +185,7 @@ def run_all_optimizer_experiments():
                     os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
                     file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
                     json.dump(dict, file)
+
             databatches = []
             unitary = []
             n += 1
@@ -210,4 +216,3 @@ if __name__ == "__main__":
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
     run_all_optimizer_experiments()
     print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
-    # die ersten 92 configs: 2h runtime

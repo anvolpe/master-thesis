@@ -51,7 +51,8 @@ def extract_solution_fun_data(json_data):
 
     # prepare results dict
     # bounds_i : opt_1 : [(x_min1, x_max1), (x_min2, x_max2),...], opt_2 : ...
-    res_fun = {}
+    res_min = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
+    res_max = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
 
     for i in range(len(json_data)):
         print(f"Verarbeite config_{i}")
