@@ -286,6 +286,7 @@ def pso_test():
                 results[run_n]["fun"] = res
                 results[run_n]["x"] = pos
                 results[run_n]["callback"] = list(optimizer.cost_history) # stimmt das??
+                
                 global nit 
                 nit = 0
                 run_n += 1
