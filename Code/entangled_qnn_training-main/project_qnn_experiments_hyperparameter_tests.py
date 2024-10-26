@@ -42,8 +42,8 @@ default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 #learning_rates = [0.0001]
 
-#opt_string_dict = {genetic_algorithm_experiment : "GA", differential_evolution_experiment : "DE", particle_swarm_experiment : "PSO"}
-opt_string_dict = {genetic_algorithm_experiment : "GA", particle_swarm_experiment : "PSO"}
+opt_string_dict = {genetic_algorithm_experiment : "GA", diff_evolution_experiment : "DE", particle_swarm_experiment : "PSO"}
+#opt_string_dict = {genetic_algorithm_experiment : "GA", particle_swarm_experiment : "PSO"}
 
 
 def run_opt_experiments_for_every_fifth_config(opt_list=None):
@@ -121,5 +121,5 @@ if __name__ == "__main__":
     
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
-    run_opt_experiments_for_every_fifth_config(opt_list=[genetic_algorithm_experiment])
+    run_opt_experiments_for_every_fifth_config(opt_list=[genetic_algorithm_experiment,diff_evolution_experiment,particle_swarm_experiment])
     print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
