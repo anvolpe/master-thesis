@@ -58,8 +58,8 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
                         nit_per_hyperparameter_value[hyperparameter_value] = []
 
                     #append fun and nit value to correct list in result dictionaries
-                    fun_per_hyperparameter_value[hyperparameter_value].append(dict[str(j)][fun_key_name]) 
-                    nit_per_hyperparameter_value[hyperparameter_value].append(dict[str(j)][nit_key_name])
+                    fun_per_hyperparameter_value[hyperparameter_value].append(float(dict[str(j)][fun_key_name]))
+                    nit_per_hyperparameter_value[hyperparameter_value].append(int(dict[str(j)][nit_key_name]))
             except KeyError as e:
                 print(f"Fehler beim Lesen der Daten: {e}")
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
@@ -146,13 +146,21 @@ if __name__ == "__main__":
     directory = "experimental_results/results/optimizer_results/hyperparameter_tests"
     opt_list = ["genetic_algorithm", "particle_swarm"]
     json_data = load_json_files(directory)
-
     hyperparameters_per_opt = {"genetic_algorithm": ["max_generation/_iter","parent_selection_type", "crossover_type", "mutation_type"], 
-                               "particle_swarm": ["maxiter", "n_particles", "w", "ftol", "c1_c2"]}
+                                "particle_swarm": ["maxiter", "n_particles", "w", "ftol", "c1_c2"],
+                                "diff_evolution": ["maxiter", "recombination", "popsize", "tol"]}
 
-    for opt in opt_list:
-        save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
-        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+    # create top and bottom 25 hyperparameter combinations for GA and PSO
+
+    # create boxplots for DE
+    opt = "diff_evolution"
+    save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
+    create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+
+    # DONE: create boxplots for GA and PSO
+    # for opt in opt_list:
+    #     save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
+    #     create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
 
     
     
