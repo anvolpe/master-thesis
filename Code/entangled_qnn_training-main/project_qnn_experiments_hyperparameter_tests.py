@@ -111,6 +111,8 @@ def run_opt_experiments_for_every_fifth_config(opt_list=None):
                 #print(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4)))
                 databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) #data_points: 1x4x4 tensor
 
+
+
 if __name__ == "__main__":
     #single_optimizer_experiment(1, "random",1,1,[],[])
     #start = time.time()

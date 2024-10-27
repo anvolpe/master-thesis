@@ -33,12 +33,6 @@ default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 #learning_rates = [0.0001]
 
-# hyperparameters for PSO
-swarm_sizes = [10,30,60] #n_particles
-inertia_values = [0.5, 0.9] #w
-cognitive_social_value_pairs = [[0.5, 0.5], [0.5, 2], [2, 0.5]] # c1, c2
-#cognitive_social_value_pairs = [[0.5, 0.3]]
-
 
 # Callback: Save every 10th intermediate results of each optimization
 fun_all = [] # array for callback function (save every 10th fun value during optimization)
@@ -256,6 +250,12 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 run_n += 1
     return results
 
+# hyperparameters for PSO
+swarm_sizes = [10,30,60] #n_particles
+inertia_values = [0.5, 0.9] #w
+cognitive_social_value_pairs = [[0.5, 0.5], [0.5, 2], [2, 0.5]] # c1, c2
+#cognitive_social_value_pairs = [[0.5, 0.3]]
+
 def particle_swarm_experiment(objective,bounds=None):
     results = {"type": "gradient-free"} 
     results = {"hyperparameters": f"max_iter: {max_iters}, n_particles (swarm size): {swarm_sizes}, w (inertia): {inertia_values}, [c1,c2] (cognitive and social parameter): {cognitive_social_value_pairs}."}
@@ -357,10 +357,10 @@ def genetic_algorithm_experiment(objective, bounds=None):
 
                     solution, solution_fitness, solution_idx = ga_instance.best_solution()
 
-                    results[run_n] = {"max_generation/_iter": num_generations,"duration": duration}
+                    results[run_n] = {"maxiter": num_generations,"duration": duration} 
                     results[run_n]["fun"] = -solution_fitness
                     results[run_n]["x"] = list(solution)
-                    results[run_n]["ngeneration/max_iter"] = int(ga_instance.best_solution_generation)
+                    results[run_n]["nit"] = int(ga_instance.best_solution_generation) 
                     results[run_n]["num_parents_mating"] = num_parents_mating
                     results[run_n]["sol_per_pop"] = sol_per_pop
                     results[run_n]["parent_selection_type"] = parent_selection_type

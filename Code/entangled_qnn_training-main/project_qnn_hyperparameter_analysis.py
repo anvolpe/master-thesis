@@ -60,6 +60,8 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
                     #append fun and nit value to correct list in result dictionaries
                     fun_per_hyperparameter_value[hyperparameter_value].append(float(dict[str(j)][fun_key_name]))
                     nit_per_hyperparameter_value[hyperparameter_value].append(int(dict[str(j)][nit_key_name]))
+                    if(float(dict[str(j)][fun_key_name]) <0):
+                        print("config ",i, "databatch ", databatch_id, hyperparameter, hyperparameter_value, "FUN WERT: ", float(dict[str(j)][fun_key_name]))
             except KeyError as e:
                 print(f"Fehler beim Lesen der Daten: {e}")
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
@@ -142,20 +144,52 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
         plt.savefig(file_path)
         plt.close()
 
+def get_fun_values_for_opts(data, opt_list):
+    optimizer_data = {}
+    for i in range(len(data)):
+        for databatch_id in databatches:
+            try:
+                for opt in opt_list:
+                    if opt not in optimizer_data:
+                        optimizer_data[opt] = []
+                    dict = data[i][databatch_id][opt]
+                    for j in range(0,len(dict)-1):
+                        #append fun value to correct list in result dictionaries
+                        optimizer_data[opt].append(float(dict[str(j)]["fun"]))
+            except KeyError as e:
+                print(f"Fehler beim Lesen der Daten: {e}")
+    return optimizer_data
+
+def all_opts_fun_value_boxplots(path,json_data, opt_list):
+    fun_dict = get_fun_values_for_opts(json_data,opt_list)
+    # Boxplot for function values
+    file_path = os.path.join(path, f'all_opt_boxplot_fun.png')
+    plt.figure()
+    plt.boxplot(fun_dict.values())
+    plt.xticks(range(1, len(fun_dict.keys()) + 1), fun_dict.keys())
+    plt.xlabel("Optimizer")
+    plt.ylabel('Function value')
+    plt.title(f"Achieved loss function values for different Optimizers")
+    plt.grid(True)
+    plt.savefig(file_path)
+    plt.close()
+
+
 if __name__ == "__main__":
     directory = "experimental_results/results/optimizer_results/hyperparameter_tests"
-    opt_list = ["genetic_algorithm", "particle_swarm"]
+    opt_list = ["genetic_algorithm", "particle_swarm", "diff_evolution"]
     json_data = load_json_files(directory)
     hyperparameters_per_opt = {"genetic_algorithm": ["max_generation/_iter","parent_selection_type", "crossover_type", "mutation_type"], 
                                 "particle_swarm": ["maxiter", "n_particles", "w", "ftol", "c1_c2"],
                                 "diff_evolution": ["maxiter", "recombination", "popsize", "tol"]}
+    save_path = f'qnn-experiments/experimental_results'
+    all_opts_fun_value_boxplots(save_path,json_data,opt_list)
 
-    # create top and bottom 25 hyperparameter combinations for GA and PSO
 
-    # create boxplots for DE
-    opt = "diff_evolution"
-    save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
-    create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+    # DONE: create boxplots for DE
+    # opt = "diff_evolution"
+    # save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
+    # create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
 
     # DONE: create boxplots for GA and PSO
     # for opt in opt_list:
