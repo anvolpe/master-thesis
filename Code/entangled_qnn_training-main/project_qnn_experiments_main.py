@@ -199,7 +199,7 @@ def run_all_optimizer_experiments(opt_list=None):
             if(var == "conf_id"): conf_id = int(val) 
             elif(var == "data_type"): data_type = val # random, orthogonal, non_lin_ind, var_s_rank
             elif(var == "num_data_points"): num_data_points = int(val) 
-            elif(var == "s_rank"): s_rank = int(s_rank) # Schmidt-Rank
+            elif(var == "s_rank"): s_rank = int(val) # Schmidt-Rank
             elif(var == "unitary"): 
                 val,_ = re.subn('\[|\]|\\n', '', val) 
                 unitary = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4))#unitary: 4x4 tensor
