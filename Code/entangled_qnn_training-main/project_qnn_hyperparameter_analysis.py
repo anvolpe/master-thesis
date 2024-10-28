@@ -23,7 +23,7 @@ import re
 from project_qnn_analysis import *
 
 databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
-
+conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
 
 def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
     '''
@@ -39,13 +39,10 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
     fun_key_name = "fun"
     nit_key_name = "nit"
 
-    # genetic algorithm uses "generation" instead of "iteration"
-    if(opt=="genetic_algorithm"):
-        nit_key_name = "ngeneration/max_iter"
-    n=0
-
-
     for i in range(len(data)):
+        conf_id = data[i]["conf_id"]
+        if conf_id in conf_ids_to_skip:
+            continue
         for databatch_id in databatches:
             try:
                 dict = data[i][databatch_id][opt]
@@ -60,8 +57,8 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
                     #append fun and nit value to correct list in result dictionaries
                     fun_per_hyperparameter_value[hyperparameter_value].append(float(dict[str(j)][fun_key_name]))
                     nit_per_hyperparameter_value[hyperparameter_value].append(int(dict[str(j)][nit_key_name]))
-                    if(float(dict[str(j)][fun_key_name]) <0):
-                        print("config ",i, "databatch ", databatch_id, hyperparameter, hyperparameter_value, "FUN WERT: ", float(dict[str(j)][fun_key_name]))
+                    if(float(dict[str(j)][fun_key_name]) < 0):
+                        print("config ",conf_id, "databatch ", databatch_id, "run_n", j,hyperparameter, hyperparameter_value, "FUN WERT: ", dict[str(j)][fun_key_name])
             except KeyError as e:
                 print(f"Fehler beim Lesen der Daten: {e}")
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
@@ -73,6 +70,7 @@ def load_fun_nit_for_c1_c2_PSO(data):
         Creates one dictionary that contains a list of achieved function values after optimization
         per value for a (c1,c2) pair and another dictionary with number of iterations needed.
     '''
+    opt = "particle_swarm"
     fun_per_hyperparameter_value = {}
     nit_per_hyperparameter_value = {}
 
@@ -81,6 +79,9 @@ def load_fun_nit_for_c1_c2_PSO(data):
     nit_key_name = "nit"
 
     for i in range(len(data)):
+        conf_id = data[i]["conf_id"]
+        if conf_id in conf_ids_to_skip:
+            continue
         for databatch_id in databatches:
             try:
                 dict = data[i][databatch_id][opt]
@@ -106,14 +107,8 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
     os.makedirs(path, exist_ok=True)
     # replace "iterations" with "generations" in plots if opt is genetic algorithm
     nit_name = "iterations"
-    if opt == "genetic algorithm":
-        nit_name = "generations"
     # make two boxplots per hyperparameter: one for function values, one for number of iterations
     for par in hyperparameters:
-        par_name = par
-        if par == "max_generation/_iter":
-            par_name = "max_iter" 
-
         #c1,c2 need to be analysed separately
         if par == "c1_c2":
             fun_dict, nit_dict = load_fun_nit_for_c1_c2_PSO(json_data)
@@ -121,32 +116,35 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
             fun_dict, nit_dict = load_fun_nit_per_hyperparameter_data(json_data,opt,par)
 
         # Boxplot for function values
-        file_path = os.path.join(path, f'{opt}_boxplot_fun_{par_name}.png')
+        file_path = os.path.join(path, f'{opt}_boxplot_fun_{par}.png')
         plt.figure()
         plt.boxplot(fun_dict.values())
         plt.xticks(range(1, len(fun_dict.keys()) + 1), fun_dict.keys())
-        plt.xlabel(par_name)
+        plt.xlabel(par)
         plt.ylabel('Function value')
-        plt.title(f"Achieved loss function values per values of \n {par_name} for {opt}")
+        plt.title(f"Achieved loss function values per values of \n {par} for {opt}")
         plt.grid(True)
         plt.savefig(file_path)
         plt.close()
 
         # Boxplot for number of iterations
-        file_path = os.path.join(path, f'{opt}_boxplot_nit_{par_name}.png')
+        file_path = os.path.join(path, f'{opt}_boxplot_nit_{par}.png')
         plt.figure()
         plt.boxplot(nit_dict.values())
         plt.xticks(range(1, len(nit_dict.keys()) + 1), nit_dict.keys())
-        plt.xlabel(par_name)
+        plt.xlabel(par)
         plt.ylabel(f'Number of {nit_name}')
-        plt.title(f"Number of {nit_name} per values of \n {par_name} for {opt}")
+        plt.title(f"Number of {nit_name} per values of \n {par} for {opt}")
         plt.grid(True)
         plt.savefig(file_path)
         plt.close()
 
-def get_fun_values_for_opts(data, opt_list):
+def get_all_fun_values_for_opts(data, opt_list):
     optimizer_data = {}
     for i in range(len(data)):
+        conf_id = data[i]["conf_id"]
+        if conf_id in conf_ids_to_skip:
+            continue
         for databatch_id in databatches:
             try:
                 for opt in opt_list:
@@ -161,7 +159,7 @@ def get_fun_values_for_opts(data, opt_list):
     return optimizer_data
 
 def all_opts_fun_value_boxplots(path,json_data, opt_list):
-    fun_dict = get_fun_values_for_opts(json_data,opt_list)
+    fun_dict = get_all_fun_values_for_opts(json_data,opt_list)
     # Boxplot for function values
     file_path = os.path.join(path, f'all_opt_boxplot_fun.png')
     plt.figure()
@@ -176,25 +174,23 @@ def all_opts_fun_value_boxplots(path,json_data, opt_list):
 
 
 if __name__ == "__main__":
+    print(conf_ids_to_skip)
+
+
     directory = "experimental_results/results/optimizer_results/hyperparameter_tests"
     opt_list = ["genetic_algorithm", "particle_swarm", "diff_evolution"]
     json_data = load_json_files(directory)
-    hyperparameters_per_opt = {"genetic_algorithm": ["max_generation/_iter","parent_selection_type", "crossover_type", "mutation_type"], 
-                                "particle_swarm": ["maxiter", "n_particles", "w", "ftol", "c1_c2"],
-                                "diff_evolution": ["maxiter", "recombination", "popsize", "tol"]}
-    save_path = f'qnn-experiments/experimental_results'
+    hyperparameters_per_opt = {"genetic_algorithm": ["maxiter", "crossover_type", "stop_criteria"], 
+                                "particle_swarm": ["maxiter", "ftol"],
+                                "diff_evolution": ["maxiter"]}
+    save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/'
+    
+
+    # create boxplots for GA and PSO and DE
+    for opt in opt_list:
+        save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
+        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
     all_opts_fun_value_boxplots(save_path,json_data,opt_list)
-
-
-    # DONE: create boxplots for DE
-    # opt = "diff_evolution"
-    # save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
-    # create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
-
-    # DONE: create boxplots for GA and PSO
-    # for opt in opt_list:
-    #     save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
-    #     create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
 
     
     

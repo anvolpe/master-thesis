@@ -251,10 +251,12 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
     return results
 
 # hyperparameters for PSO
-swarm_sizes = [10,30,60] #n_particles
-inertia_values = [0.5, 0.9] #w
-cognitive_social_value_pairs = [[0.5, 0.5], [0.5, 2], [2, 0.5]] # c1, c2
-#cognitive_social_value_pairs = [[0.5, 0.3]]
+#swarm_sizes = [10,30,60] #n_particles
+swarm_sizes=[60]
+#inertia_values = [0.5, 0.9] #w
+inertia_values = [0.9]
+#cognitive_social_value_pairs = [[0.5, 0.5], [0.5, 2], [2, 0.5]] # c1, c2
+cognitive_social_value_pairs = [[0.5, 2]]
 
 def particle_swarm_experiment(objective,bounds=None):
     results = {"type": "gradient-free"} 
@@ -270,7 +272,7 @@ def particle_swarm_experiment(objective,bounds=None):
         for S in swarm_sizes:
             for w in inertia_values:
                 for c1,c2 in cognitive_social_value_pairs:
-                    for tol in tols:
+                    for tol in [1e-5, -np.Infinity]:
                         options = {'c1': c1, 'c2': c2, 'w':w}
                         # Call instance of PSO
                         optimizer = ps.single.GlobalBestPSO(n_particles=S, dimensions=dimensions, options=options, ftol=tol, ftol_iter=50)
@@ -290,7 +292,7 @@ def particle_swarm_experiment(objective,bounds=None):
                         results[run_n]["fun"] = res
                         results[run_n]["x"] = list(pos)
                         results[run_n]["nit"] = len(optimizer.cost_history)
-                        results[run_n]["ftol"] = optimizer.ftol
+                        results[run_n]["ftol"] = str(optimizer.ftol)
                         results[run_n]["ftol_iter"] = optimizer.ftol_iter
                         results[run_n]["callback"] = list(optimizer.cost_history)
                         run_n += 1
@@ -301,10 +303,13 @@ def particle_swarm_experiment(objective,bounds=None):
 # TODO: Hyperparameter einstellen: Anzahl Generationen, Eltern, init_range, parent selection, crossover, mutation, etc.
 # TODO: Hyperparameter und richtige Ergebnisse in results dictionary speichern.
 
-selection_type_list = ["sss", "rws", "tournament", "rank"]
+#selection_type_list = ["sss", "rws", "tournament", "rank"]
+selection_type_list = ["sss"]
 crossover_type_list = ["single_point", "two_points", "uniform", "scattered"]
-mutation_type_list = ["random", "swap","inversion", "scramble"]
+#mutation_type_list = ["random", "swap","inversion", "scramble"]
+mutation_type_list = ["random"]
 max_gens = [50, 100, 500, 1000]
+stop_criteria_option = [None, "saturate_50"]
 
 
 def genetic_algorithm_experiment(objective, bounds=None):
@@ -340,37 +345,38 @@ def genetic_algorithm_experiment(objective, bounds=None):
         for parent_selection_type in selection_type_list:
             for crossover_type in crossover_type_list:
                 for mutation_type in mutation_type_list:
-                    ga_instance = pg.GA(num_generations=num_generations,
-                                    num_parents_mating=num_parents_mating,
-                                    fitness_func=fitness_function,
-                                    sol_per_pop=sol_per_pop,
-                                    num_genes=num_genes,
-                                    parent_selection_type=parent_selection_type,
-                                    keep_parents=keep_parents,
-                                    crossover_type=crossover_type,
-                                    mutation_type=mutation_type,
-                                    mutation_percent_genes=mutation_percent_genes,
-                                    stop_criteria=f"saturate_{ftol_iter}") # stops evolution if fitness value remains the same for 25 generations.
-                    start = time.time()
-                    ga_instance.run()
-                    duration = time.time() - start
+                    for stop_criteria in stop_criteria_option:
+                        ga_instance = pg.GA(num_generations=num_generations,
+                                        num_parents_mating=num_parents_mating,
+                                        fitness_func=fitness_function,
+                                        sol_per_pop=sol_per_pop,
+                                        num_genes=num_genes,
+                                        parent_selection_type=parent_selection_type,
+                                        keep_parents=keep_parents,
+                                        crossover_type=crossover_type,
+                                        mutation_type=mutation_type,
+                                        mutation_percent_genes=mutation_percent_genes,
+                                        stop_criteria=f"saturate_{ftol_iter}") # stops evolution if fitness value remains the same for 25 generations.
+                        start = time.time()
+                        ga_instance.run()
+                        duration = time.time() - start
 
-                    solution, solution_fitness, solution_idx = ga_instance.best_solution()
+                        solution, solution_fitness, solution_idx = ga_instance.best_solution()
 
-                    results[run_n] = {"maxiter": num_generations,"duration": duration} 
-                    results[run_n]["fun"] = -solution_fitness
-                    results[run_n]["x"] = list(solution)
-                    results[run_n]["nit"] = int(ga_instance.best_solution_generation) 
-                    results[run_n]["num_parents_mating"] = num_parents_mating
-                    results[run_n]["sol_per_pop"] = sol_per_pop
-                    results[run_n]["parent_selection_type"] = parent_selection_type
-                    results[run_n]["keep_parents"] = keep_parents
-                    results[run_n]["crossover_type"] = crossover_type 
-                    results[run_n]["mutation_type"] = mutation_type
-                    results[run_n]["mutations_percent_genes"] = mutation_percent_genes 
-                    results[run_n]["ftol_iter"] = ftol_iter
-                    results[run_n]["callback"] = [-x for x in ga_instance.best_solutions_fitness]
-                    run_n += 1
+                        results[run_n] = {"maxiter": num_generations,"duration": duration} 
+                        results[run_n]["fun"] = -solution_fitness
+                        results[run_n]["x"] = list(solution)
+                        results[run_n]["nit"] = int(ga_instance.best_solution_generation) 
+                        results[run_n]["num_parents_mating"] = num_parents_mating
+                        results[run_n]["sol_per_pop"] = sol_per_pop
+                        results[run_n]["parent_selection_type"] = parent_selection_type
+                        results[run_n]["keep_parents"] = keep_parents
+                        results[run_n]["crossover_type"] = crossover_type 
+                        results[run_n]["mutation_type"] = mutation_type
+                        results[run_n]["mutations_percent_genes"] = mutation_percent_genes 
+                        results[run_n]["stop_criteria"] = str(stop_criteria)
+                        results[run_n]["callback"] = [-x for x in ga_instance.best_solutions_fitness]
+                        run_n += 1
     return results
 
 def diff_evolution_experiment(objective,initial_param_values,bounds=default_bounds):
@@ -378,11 +384,11 @@ def diff_evolution_experiment(objective,initial_param_values,bounds=default_boun
     run_n = 0
 
     #recombinationIndices={0.7,0.8,0.9,1}
-    recombinationIndices={0.8,0.95}
+    recombinationIndices={0.8}
     #popSizes={5,10,15}
-    popSizes={5,10}
+    popSizes={10}
     #tols={1e-10,1e-5,0.01}
-    tols={1e-5, 1e-10}
+    tols={1e-5}
     for max_iter in max_iters:
                 for reCombIndex in recombinationIndices:
                     for popSize in popSizes:
