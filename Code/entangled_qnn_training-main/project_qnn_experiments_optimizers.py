@@ -14,6 +14,10 @@ from scipy.optimize import minimize, dual_annealing, differential_evolution
 import pyswarms as ps
 import pygad as pg
 
+import numpy as np
+import torch
+from scipy.optimize import minimize
+
 
 #no_of_runs = 1
 no_of_runs = 10
@@ -297,7 +301,6 @@ def particle_swarm_experiment(objective,bounds=None):
                         results[run_n]["callback"] = list(optimizer.cost_history)
                         run_n += 1
     return results
-
 
 # GA von Alina
 #selection_type_list = ["sss", "rws", "tournament", "rank"]
