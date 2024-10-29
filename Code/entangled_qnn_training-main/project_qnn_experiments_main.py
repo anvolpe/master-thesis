@@ -165,30 +165,28 @@ def run_all_optimizer_experiments(opt_list=None):
     for line in Lines:
         if(line.strip() == "---"): # config has been fully read, run optimizer experiments for each data_point-tensor (5)
             # setup dictionary for dumping info into json file later
-            if(conf_id == 190):
-                date = datetime.now()
-                result_dict_template = {"date": date.strftime("%Y/%m/%d/, %H:%M:%S"), "conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
-                unitary_string = (
-                    np.array2string(unitary.numpy(), separator=",")
-                    .replace("\n", "")
-                    .replace(" ", "")
-                )
-                result_dict_template["unitary"] = unitary_string
+            date = datetime.now()
+            result_dict_template = {"date": date.strftime("%Y/%m/%d/, %H:%M:%S"), "conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
+            unitary_string = (
+                np.array2string(unitary.numpy(), separator=",")                    
+                .replace("\n", "")
+                .replace(" ", "")
+            )
+            result_dict_template["unitary"] = unitary_string
                 
-                n = 0
-                with ProcessPoolExecutor(max_workers=5) as exe:
-                    futures = [exe.submit(single_optimizer_experiment,conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches,opt_list) for run_id in range(no_of_runs)]
-                    
-                    for future in as_completed(futures):
-                        # get the result for the next completed task
-                        run_id, result_dict = future.result()# blocks
-                        # create complete result dictionary (begins with result_dict_template)
-                        dict = result_dict_template
-                        dict.update(result_dict)
-                        #write results to json file
-                        os.makedirs("experimental_results/results/optimizer_results/hyperparameter_tests_new", exist_ok=True)
-                        file = open(f"experimental_results/results/optimizer_results/hyperparameter_tests_new/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
-                        json.dump(dict, file, indent=4)
+            n = 0
+            with ProcessPoolExecutor(max_workers=5) as exe:
+                futures = [exe.submit(single_optimizer_experiment,conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches,opt_list) for run_id in range(no_of_runs)]            
+                for future in as_completed(futures):
+                    # get the result for the next completed task
+                    run_id, result_dict = future.result()# blocks
+                    # create complete result dictionary (begins with result_dict_template)
+                    dict = result_dict_template
+                    dict.update(result_dict)
+                    #write results to json file
+                    os.makedirs("experimental_results/results/optimizer_results/GA_PSO_DE", exist_ok=True)
+                    file = open(f"experimental_results/results/optimizer_results/GA_PSO_DE/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
+                    json.dump(dict, file, indent=4)
 
             databatches = []
             unitary = []
