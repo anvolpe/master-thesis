@@ -300,9 +300,6 @@ def particle_swarm_experiment(objective,bounds=None):
 
 
 # GA von Alina
-# TODO: Hyperparameter einstellen: Anzahl Generationen, Eltern, init_range, parent selection, crossover, mutation, etc.
-# TODO: Hyperparameter und richtige Ergebnisse in results dictionary speichern.
-
 #selection_type_list = ["sss", "rws", "tournament", "rank"]
 selection_type_list = ["sss"]
 crossover_type_list = ["single_point", "two_points", "uniform", "scattered"]
