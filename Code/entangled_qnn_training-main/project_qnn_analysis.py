@@ -20,13 +20,16 @@ import pandas as pd
 from scipy.optimize import minimize, dual_annealing
 import re
 
+conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
+combinations_to_skip = [["non_lin_ind","2","3"],["non_lin_ind","3","3"],["non_lin_ind","4","3"]] # Format [data_type, num_data_points, s_rank]
+
 # TODO: in eine funktion mit der andere load_jason... packen
 def load_json_files(directory):
     data = []
     for filename in os.listdir(directory):
         if filename.endswith('.json'):
             file_path = os.path.join(directory, filename)
-            print(f"Lade Datei: {file_path}")
+            #print(f"Lade Datei: {file_path}")
             with open(file_path, 'r') as file:
                 try:
                     json_data = json.load(file)
@@ -213,8 +216,8 @@ def extract_optimizer_data(json_data,use_nits=True):
                                             print(f"Fehler beim Konvertieren der Daten: {e}")
                                     else:
                                         print(f"Fehlende Schlüssel in den Daten: {data}")
-                                else:
-                                    print(f"Unerwartete Datenstruktur: {data}")
+                                #else:
+                                    #print(f"Unerwartete Datenstruktur: {data}")
                         else:
                             print(f"Optimierer {optimizer} nicht in den Datenbatch {batch_key} gefunden")
         else:
@@ -304,7 +307,7 @@ def load_json_data(directory, conf_id_list):
         for filename in os.listdir(directory):
             if filename.endswith('.json') and filename.startswith(f'conf_{id}_'):
                 file_path = os.path.join(directory, filename)
-                print(f"Lade Datei: {file_path}")
+                #print(f"Lade Datei: {file_path}")
                 with open(file_path, 'r') as file:
                     try:
                         all_data[id].append(json.load(file))
@@ -359,20 +362,18 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
     mean_fun_values = {}
     max_nit_values = {}
     for value in conf_id_list.keys():
-        print(value,conf_id_list[value])
         all_data = load_json_data(directory, conf_id_list[value])
         fun_values = []
         nit_values = []
+        if(config_ids_must_be_skipped(data_type,num_data_points,s_rank,value)):
+            continue
         for id in conf_id_list[value]:
-            print(id)
             for entry in all_data[id]:
                 if isinstance(entry, dict):
                     # go through each databatch
                     for batch_key in entry:
                         if batch_key.startswith("databatch_"):
-                            print(f"Verarbeite Datenbatch: {batch_key}")
                             if opt in entry[batch_key]:
-                                print(f"Verarbeite Optimierer: {opt}")
                                 # get data for optimizer opt
                                 batch_data = entry[batch_key][opt]
                                 for key in batch_data:
@@ -399,8 +400,8 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
                                                     print(f"Fehler beim Konvertieren der Daten: {e}")
                                             else:
                                                 print(f"Fehlende Schlüssel in den Daten: {data}")
-                                    else:
-                                        print(f"Unerwartete Datenstruktur: {data}")
+                                    #else:
+                                        #print(f"Unerwartete Datenstruktur: {data}")
                             else:
                                 print(f"Optimierer {opt} nicht in den Datenbatch {batch_key} gefunden")
                 else:
@@ -415,10 +416,31 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
         fun_arrays = [np.array(x) for x in fun_values]
         mean_fun_values[value] = [np.mean(k) for k in zip(*fun_arrays)]
         # compute maximum of total number of iterations (nit) for each config_id and each databatch per config_id
-        if nit_values.count(nit_values[0]) != len(nit_values):
-            print("INFO: Multiple number of total iterations found. Maximum of those values will be chosen.")
+        #if nit_values.count(nit_values[0]) != len(nit_values):
+            #print("INFO: Multiple number of total iterations found. Maximum of those values will be chosen.")
         max_nit_values[value] = np.max(nit_values)
     return mean_fun_values,max_nit_values
+
+def config_ids_must_be_skipped(data_type,num_data_points,s_rank, value):
+    ''' 
+        Returns true if for this combination of data_type, number of data points and s_rank the original configurations were faulty 
+        (i.e. trainingsdata does not have norm 1) TODO: stimmt das???
+        Combinations to be skipped are: data_type = non_lin_ind, s_rank = 3, num_data_points in [2,3,4]
+        One of data_type, num_data_points and s_rank is None and the None-parameter has the specified value.
+        Return:
+            true if this combination of parameters needs to be skipped. False otherwise
+    '''
+    params = [data_type, num_data_points, s_rank]
+    none_indices = [i for i in range(len(params)) if params[i] == None]
+    if(len(none_indices)>1):
+        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
+    params[none_indices[0]] = value
+    if(params in combinations_to_skip):
+        print(params)
+        return True
+    else:
+        return False
+
 
 def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt, maxiter, data_type, num_data_points, s_rank):
     '''
@@ -456,7 +478,6 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         y = mean_fun_data[param_value]
         x = np.append(np.arange(0,(len(y)-1)*stepsize, stepsize), mean_nit_data[param_value])
         plt.plot(x,y, color=color, label=label)
-        print(param_value, "ok")
         c += 1
     plt.ylim(0,1)
     plt.xlabel('Iterations')
@@ -488,15 +509,17 @@ def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank
 
     fun_values = {}
     for id in conf_id_list:
+        if id in conf_ids_to_skip:
+            continue
         for entry in all_data[id]:
             fun_values[id] = []
             if isinstance(entry, dict):
                 # go through each databatch
                 for batch_key in entry:
                     if batch_key == f'databatch_{databatch}':
-                        print(f"Verarbeite Datenbatch: {batch_key}")
+                        #print(f"Verarbeite Datenbatch: {batch_key}")
                         if opt in entry[batch_key]:
-                            print(f"Verarbeite Optimierer: {opt}")
+                            #print(f"Verarbeite Optimierer: {opt}")
                             # get data for optimizer opt
                             batch_data = entry[batch_key][opt]
                             for key in batch_data:
@@ -520,8 +543,8 @@ def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank
                                                 print(f"Fehler beim Konvertieren der Daten: {e}")
                                         else:
                                             print(f"Fehlende Schlüssel in den Daten: {data}")
-                                else:
-                                    print(f"Unerwartete Datenstruktur: {data}")
+                                #else:
+                                    #print(f"Unerwartete Datenstruktur: {data}")
                         else:
                             print(f"Optimierer {opt} nicht in den Datenbatch {batch_key} gefunden")
             else:
@@ -569,39 +592,57 @@ if __name__ == "__main__":
     num_data_points_list = ['1', '2', '3', '4']
     s_rank_list = ['1', '2', '3', '4']
     origin_path = 'experimental_results/results/optimizer_results/'
-    maxiter_list = [100, 500, 1000,]
+    #maxiter_list = [100, 500, 1000]
+    maxiter_list = [100,1000]
     
+    start = time.time()
+    print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
 
     # convergence plots for variable s_rank, but fixed datatype and num_data_points
-    for datatype in datatype_list:
-        for num_data_points in num_data_points_list:
-            for maxiter in maxiter_list:
-                save_path = f'qnn-experiments/experimental_results/results/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/num_data_points/{num_data_points}'
+    print("Variable S-Rank in progress...")
+    for maxiter in maxiter_list:
+        print(f"maxiter: {maxiter}")
+        for datatype in datatype_list:
+            print(f"datatype: {datatype}")
+            for num_data_points in num_data_points_list:
+                print(f"num_data_points: {num_data_points}")
+                save_path = f'qnn-experiments/plots/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/num_data_points/{num_data_points}'
                 for opt in optimizers:
-                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points,None) 
+                    fun_values, nit_values= extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points,None) 
                     convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, datatype, num_data_points, None)
-                    print(opt, "ok")
+                    print(f"optimizer: {opt} done")
 
     # convergence plots for variable num_data_points, but fixed datatype and s_rank
-    for datatype in datatype_list:
-        for s_rank in s_rank_list:
-            for maxiter in maxiter_list:
-                save_path = f'qnn-experiments/experimental_results/results/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/s_rank/{s_rank}'
+    print("Variable number of data points in progress...")
+    for maxiter in maxiter_list:
+        print(f"maxiter: {maxiter}")
+        for datatype in datatype_list:
+            print(f"datatype: {datatype}")
+            for s_rank in s_rank_list:
+                if(s_rank==3 and datatype=="non_lin_ind"):
+                    print("skipping s-rank = 2, datatype = non_lin_ind")
+                    continue
+                print(f"s-rank: {s_rank}")
+                save_path = f'qnn-experiments/plots/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/s_rank/{s_rank}'
                 for opt in optimizers:
                     fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank) 
                     convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, datatype, None, s_rank)
-                    print(opt, "ok")   
+                    print(f"optimizer: {opt} done")  
 
     # convergence plots for variabel datatype, but fixed num_data_points and s_rank
-    for s_rank in s_rank_list:
-        for num_data_points in num_data_points_list:
-            for maxiter in maxiter_list:
-                save_path = f'qnn-experiments/experimental_results/results/convergence_plots/maxiter/{maxiter}/s_rank/{s_rank}/num_data_points/{num_data_points}'
+    print("Variable datatype in progress...")
+    for maxiter in maxiter_list:
+        print(f"maxiter: {maxiter}")
+        for s_rank in s_rank_list:
+            print(f"s-rank: {s_rank}")
+            for num_data_points in num_data_points_list:
+                print(f"num_data_points: {num_data_points}")
+                save_path = f'qnn-experiments/plots/convergence_plots/maxiter/{maxiter}/s_rank/{s_rank}/num_data_points/{num_data_points}'
                 for opt in optimizers:
                     fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points,s_rank) 
                     convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, None, num_data_points, s_rank)
-                    print(opt, "ok")
-
+                    print(f"optimizer: {opt} done")
+    print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
     
 
     #path = "experimental_results/results/optimizer_results/bounds/"
