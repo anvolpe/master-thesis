@@ -293,7 +293,8 @@ def pso_test():
     print(results)
 
 if __name__ == "__main__":
-    pso_test()
+    x = np.array([1,2,3])
+    print(-x)
 
 
 

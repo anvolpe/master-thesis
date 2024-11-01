@@ -32,6 +32,7 @@ max_iters = [100,500,1000]
 #max_iters = [1000]
 #tols = [1e-5]
 tols = [1e-5, 1e-10]
+
 #tols = [1e-10, 1e-15] schlechte ergebnisse, 1e-5 viel besser
 #tols = [1e-2, 1e-5]
 #bounds = [(0,2*np.pi)*dimensions]
@@ -40,9 +41,7 @@ default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 #learning_rates = [0.0001]
 
-
-
-def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches):
+def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches, opt_list=None):
     '''
     Run all optimizer experiments for a single config & databatch combination
 
@@ -81,6 +80,7 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
             qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
             cost = cost_func(data_points, y_true, qnn, device="cpu") 
             return cost.item()
+        
         # objective function for Particle Swarm Optimization
         def objective_for_pso(x):
             '''
@@ -103,7 +103,10 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
         # run optimizer experiments
         sgd_optimizers = [sgd, rmsprop, adam]
         #sgd_optimizers = [adam]
-        optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment]
+        if opt_list==None:
+            optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment]
+        else:
+            optimizers = opt_list
         
         # TODO: ProcessPoolExecutor: funktioniert nicht, weil pickle verwendet wird und objective eine lokal definierte Funktion ist 
         # (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
@@ -139,7 +142,7 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
     return run_id, result_dict
 
 
-def run_all_optimizer_experiments():
+def run_all_optimizer_experiments(opt_list=None):
     '''
     Read all configurations of qnn and databatches from configurations_16_6_4_10_13_3_14.txt and run optimizer experiments
     for every configuration & databatch combination
@@ -165,26 +168,25 @@ def run_all_optimizer_experiments():
             date = datetime.now()
             result_dict_template = {"date": date.strftime("%Y/%m/%d/, %H:%M:%S"), "conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
             unitary_string = (
-                np.array2string(unitary.numpy(), separator=",")
+                np.array2string(unitary.numpy(), separator=",")                    
                 .replace("\n", "")
                 .replace(" ", "")
             )
             result_dict_template["unitary"] = unitary_string
-            
-            n = 0
-            with ProcessPoolExecutor(max_workers=10) as exe:
-                futures = [exe.submit(single_optimizer_experiment,conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches) for run_id in range(no_of_runs)]
                 
+            n = 0
+            with ProcessPoolExecutor(max_workers=5) as exe:
+                futures = [exe.submit(single_optimizer_experiment,conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches,opt_list) for run_id in range(no_of_runs)]            
                 for future in as_completed(futures):
-	                # get the result for the next completed task
+                    # get the result for the next completed task
                     run_id, result_dict = future.result()# blocks
                     # create complete result dictionary (begins with result_dict_template)
                     dict = result_dict_template
                     dict.update(result_dict)
                     #write results to json file
-                    os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
-                    file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
-                    json.dump(dict, file)
+                    os.makedirs("experimental_results/results/optimizer_results/GA_PSO_DE", exist_ok=True)
+                    file = open(f"experimental_results/results/optimizer_results/GA_PSO_DE/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
+                    json.dump(dict, file, indent=4)
 
             databatches = []
             unitary = []
@@ -195,7 +197,7 @@ def run_all_optimizer_experiments():
             if(var == "conf_id"): conf_id = int(val) 
             elif(var == "data_type"): data_type = val # random, orthogonal, non_lin_ind, var_s_rank
             elif(var == "num_data_points"): num_data_points = int(val) 
-            elif(var == "s_rank"): s_rank = int(s_rank) # Schmidt-Rank
+            elif(var == "s_rank"): s_rank = int(val) # Schmidt-Rank
             elif(var == "unitary"): 
                 val,_ = re.subn('\[|\]|\\n', '', val) 
                 unitary = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4))#unitary: 4x4 tensor
@@ -211,8 +213,8 @@ if __name__ == "__main__":
     #print(f"total runtime: {np.round((time.time()-start)/60,2)}min") 
     # total runtime: 17.59min, max_iter: 10000, optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
     # total runtime: ca 40 min, max_iter = 1000, optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP', sgd, adam, rmsprop]
-    
+
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
-    run_all_optimizer_experiments()
+    run_all_optimizer_experiments(opt_list=[genetic_algorithm_experiment, particle_swarm_experiment, diff_evolution_experiment])
     print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 

@@ -10,8 +10,9 @@ from victor_thesis_metrics import *
 from victor_thesis_experiments_main import *
 
 from sgd_for_scipy import *
-from scipy.optimize import minimize, dual_annealing
+from scipy.optimize import minimize, dual_annealing, differential_evolution
 import pyswarms as ps
+import pygad as pg
 
 import numpy as np
 import torch
@@ -26,7 +27,7 @@ num_qubits = 2
 dimensions = 6
 max_iters = [100,500,1000]
 #max_iters = [1000]
-#tols = [1e-5]
+#tols = [1e-10]
 tols = [1e-5, 1e-10]
 #tols = [1e-10, 1e-15] schlechte ergebnisse, 1e-5 viel besser
 #tols = [1e-2, 1e-5]
@@ -35,7 +36,6 @@ default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 #bounds = list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 #learning_rates = [0.0001]
-
 
 
 # Callback: Save every 10th intermediate results of each optimization
@@ -66,6 +66,17 @@ def getCallback(objective_func):
             fun_all.append(float(fun))
         nit += 1
     return saveIntermResult_Calc
+
+#mit oben eingeführter callback ersetzten
+def get_callback_DiffEvolution(objective_func):
+    def callback_DiffEvolution(x, convergence):
+        global nit
+        fun = objective_func(x)
+        if(nit%10==0):
+            fun_all.append(float(fun))
+        nit += 1
+    return callback_DiffEvolution
+
 
 #use specific callback Signature for dual annealing
 #(x,f,context) with f being the current function value
@@ -243,124 +254,162 @@ def dual_annealing_experiment(objective,initial_param_values,bounds=default_boun
                 run_n += 1
     return results
 
-def particle_swarm_experiment(objective, initial_param_values,bounds=None):
+# hyperparameters for PSO
+#swarm_sizes = [10,30,60] #n_particles
+swarm_sizes=[60]
+#inertia_values = [0.5, 0.9] #w
+inertia_values = [0.9]
+#cognitive_social_value_pairs = [[0.5, 0.5], [0.5, 2], [2, 0.5]] # c1, c2
+cognitive_social_value_pairs = [[0.5, 2]]
+
+def particle_swarm_experiment(objective,bounds=None):
     results = {"type": "gradient-free"} 
+    results = {"hyperparameters": f"max_iter: {max_iters}, n_particles (swarm size): {swarm_sizes}, w (inertia): {inertia_values}, [c1,c2] (cognitive and social parameter): {cognitive_social_value_pairs}."}
     run_n = 0
     # dimensions in particle swarm = number of parameters in QNN, i.e. length of initial_param_values, i.e. dimensions = 6 (see line 26)
     # Set-up hyperparameters
     # c1 = cognititve parameter, c2 = social parameter, w = controls inertia of swarm movement
-    options = {'c1': 0.5, 'c2': 0.3, 'w':0.9}
+    
     run_n = 0
     for max_iter in max_iters:
-        #for tol in tols:
-        #for catol in tols:
-                # Call instance of PSO
-                optimizer = ps.single.GlobalBestPSO(n_particles=10, dimensions=dimensions, options=options)
+    #for max_iter in [1000]:
+        for S in swarm_sizes:
+            for w in inertia_values:
+                for c1,c2 in cognitive_social_value_pairs:
+                    for tol in [1e-5, -np.Infinity]:
+                        options = {'c1': c1, 'c2': c2, 'w':w}
+                        # Call instance of PSO
+                        optimizer = ps.single.GlobalBestPSO(n_particles=S, dimensions=dimensions, options=options, ftol=tol, ftol_iter=50)
 
-                # Perform optimization
-                start = time.time()
-                res, pos = optimizer.optimize(objective, iters=max_iter)
-                duration = time.time() - start
-                # fill results dict
-                # specifications of this optimizer run
-                results[run_n] = {"maxiter": max_iter, "duration":duration}
-                # result info
-                '''for attribute in res.keys():
-                    results[run_n][attribute] = str(res[attribute])'''
-                results[run_n]["fun"] = res
-                results[run_n]["x"] = pos
-                results[run_n]["ftol"] = optimizer.ftol
-                results[run_n]["callback"] = list(optimizer.cost_history) # stimmt das??
-                
-                global nit 
-                nit = 0
-                run_n += 1
+                        # Perform optimization
+                        start = time.time()
+                        res, pos = optimizer.optimize(objective, iters=max_iter,verbose=False)
+                        duration = time.time() - start
+                        # fill results dict
+                        # specifications of this optimizer run
+                        results[run_n] = {"maxiter": max_iter, "duration":duration}
+                        # result info
+                        results[run_n]["n_particles"] = S
+                        results[run_n]["c1"] = c1
+                        results[run_n]["c2"] = c2
+                        results[run_n]["w"] = w
+                        results[run_n]["fun"] = res
+                        results[run_n]["x"] = list(pos)
+                        results[run_n]["nit"] = len(optimizer.cost_history)
+                        results[run_n]["ftol"] = str(optimizer.ftol)
+                        results[run_n]["ftol_iter"] = optimizer.ftol_iter
+                        results[run_n]["callback"] = list(optimizer.cost_history)
+                        run_n += 1
     return results
 
+# GA von Alina
+#selection_type_list = ["sss", "rws", "tournament", "rank"]
+selection_type_list = ["sss"]
+crossover_type_list = ["single_point", "two_points", "uniform", "scattered"]
+#mutation_type_list = ["random", "swap","inversion", "scramble"]
+mutation_type_list = ["random"]
+max_gens = [50, 100, 500, 1000]
+stop_criteria_option = [None, "saturate_50"]
 
 
-
-#Ideal hyperparameter for 6-dimensional problems according to **(Quelle.../ keine Angaben zu SM und Elitism/)** 
-#Population Size:20-100,Mutation Rate:0,01-0, Crossover Rate:0,7-0.9,  Number of generations:50-200,(Selection Method: not clear),(Elitism: %-% not clear) 
-
-#def genetic_algorithm_experiment(objective, initial_param_values, bounds=None):
-    
-    pop_size = 20
-    mutation_rate = 0.1
-    crossover_rate = 0.7
-    num_generations = 50
-    
-    # Initialize results dictionary
-    results = {"type": "gradient-free"}
+def genetic_algorithm_experiment(objective, bounds=None):
+    results = {"type": "gradient-free"} 
+    #results = {"hyperparameters": f"max_iter: {max_iters}, n_particles (swarm size): {swarm_sizes}, w (inertia): {inertia_values}, [c1,c2] (cognitive and social parameter): {cognitive_social_value_pairs}."}
     run_n = 0
+    # fitness function: negative cost function value (since higher fitness means better solution --> instead of minimizing, GA maximizes)
+    def fitness(ga_instance, solution, solution_idx):
+        return -objective(solution)
     
-    def fitness(individual):
-        return objective(individual)
-    
-    def initialize_population():
-        population = []
-        for _ in range(pop_size):
-            individual = np.random.uniform(low=bounds[0][0], high=bounds[0][1], size=len(initial_param_values))
-            population.append(individual)
-        return np.array(population)
-    
-    def crossover(parent1, parent2):
-        if np.random.rand() < crossover_rate:
-            crossover_point = np.random.randint(1, len(initial_param_values))
-            child1 = np.concatenate((parent1[:crossover_point], parent2[crossover_point:]))
-            child2 = np.concatenate((parent2[:crossover_point], parent1[crossover_point:]))
-            return child1, child2
-        else:
-            return parent1, parent2
-    
-    def mutate(individual):
-        for i in range(len(initial_param_values)):
-            if np.random.rand() < mutation_rate:
-                individual[i] = np.random.uniform(bounds[i][0], bounds[i][1])
-        return individual
+    #potential starting parameters, as suggested by PyGAD
+    fitness_function = fitness
 
-    population = initialize_population()
-    best_individual = None
-    best_fitness = float('inf')
-    #Track the fittest over generations
-    fitness_evolution = []  
-    
-    for generation in range(num_generations):
-        fitness_values = np.array([fitness(ind) for ind in population])
-        sorted_idx = np.argsort(fitness_values)
-        population = population[sorted_idx]
-        fitness_values = fitness_values[sorted_idx]
-        
-        if fitness_values[0] < best_fitness:
-            best_fitness = fitness_values[0]
-            best_individual = population[0]
-        
-        # Keep fittest for each generation
-        fitness_evolution.append(best_fitness)
-        
-        # Carry over the two fittest 
-        next_generation = population[:2]
-        
-        # Generate new population
-        while len(next_generation) < pop_size:
-            parent1 = population[np.random.randint(0, pop_size // 2)]
-            parent2 = population[np.random.randint(0, pop_size // 2)]
-            child1, child2 = crossover(parent1, parent2)
-            child1 = mutate(child1)
-            child2 = mutate(child2)
-            next_generation = np.vstack((next_generation, child1, child2))
-        
-        population = next_generation[:pop_size]
-        print(f"Generation {generation}: Best fitness = {best_fitness}")
+    #num_generations = 50 # TODO: vergleichbar mit max_iter? oder sind da Werte für 100, 500 und 1000 zu hoch?
+    num_parents_mating = 4
 
-    results[run_n] = {
-        "maxiter": num_generations,
-        "best_fitness": best_fitness,
-        "best_individual": best_individual.tolist(),
-        "fitness_evolution": fitness_evolution
-    }
-    
+    sol_per_pop = 8
+    num_genes = dimensions
+
+    #init_range_low = -2
+    #init_range_high = 5
+
+    #parent_selection_type = "sss" # selection method?
+    keep_parents = 1
+
+    #crossover_type = "single_point"
+
+    #mutation_type = "random" 
+    mutation_percent_genes = 10
+    ftol_iter = 50 #number of generations: if fitness value remains the same for {ftol_iter} number of generations, optimization is stopped.
+
+    for num_generations in max_gens:
+        for parent_selection_type in selection_type_list:
+            for crossover_type in crossover_type_list:
+                for mutation_type in mutation_type_list:
+                    for stop_criteria in stop_criteria_option:
+                        ga_instance = pg.GA(num_generations=num_generations,
+                                        num_parents_mating=num_parents_mating,
+                                        fitness_func=fitness_function,
+                                        sol_per_pop=sol_per_pop,
+                                        num_genes=num_genes,
+                                        parent_selection_type=parent_selection_type,
+                                        keep_parents=keep_parents,
+                                        crossover_type=crossover_type,
+                                        mutation_type=mutation_type,
+                                        mutation_percent_genes=mutation_percent_genes,
+                                        stop_criteria=f"saturate_{ftol_iter}") # stops evolution if fitness value remains the same for 25 generations.
+                        start = time.time()
+                        ga_instance.run()
+                        duration = time.time() - start
+
+                        solution, solution_fitness, solution_idx = ga_instance.best_solution()
+
+                        results[run_n] = {"maxiter": num_generations,"duration": duration} 
+                        results[run_n]["fun"] = -solution_fitness
+                        results[run_n]["x"] = list(solution)
+                        results[run_n]["nit"] = int(ga_instance.best_solution_generation) 
+                        results[run_n]["num_parents_mating"] = num_parents_mating
+                        results[run_n]["sol_per_pop"] = sol_per_pop
+                        results[run_n]["parent_selection_type"] = parent_selection_type
+                        results[run_n]["keep_parents"] = keep_parents
+                        results[run_n]["crossover_type"] = crossover_type 
+                        results[run_n]["mutation_type"] = mutation_type
+                        results[run_n]["mutations_percent_genes"] = mutation_percent_genes 
+                        results[run_n]["stop_criteria"] = str(stop_criteria)
+                        results[run_n]["callback"] = [-x for x in ga_instance.best_solutions_fitness]
+                        run_n += 1
     return results
 
-    
-    
+def diff_evolution_experiment(objective,initial_param_values,bounds=default_bounds):
+    results = {"type": "gradient-free"} 
+    run_n = 0
+
+    #recombinationIndices={0.7,0.8,0.9,1}
+    recombinationIndices={0.8}
+    #popSizes={5,10,15}
+    popSizes={10}
+    #tols={1e-10,1e-5,0.01}
+    tols={1e-5}
+    for max_iter in max_iters:
+                for reCombIndex in recombinationIndices:
+                    for popSize in popSizes:
+                            for tol in tols:
+                                #for tol in tols:
+                                #for catol in tols:
+                                start = time.time() 
+                                #Attention: standart parameters popsize=15, recombination 0.7 --->around 15min calculationtime
+                                temp_callback_DiffEvolution=get_callback_DiffEvolution(objective_func=objective)
+                                res = differential_evolution(objective, bounds, maxiter=max_iter, callback=temp_callback_DiffEvolution, updating='immediate'
+                                                            , recombination=reCombIndex, popsize= popSize, tol=tol)
+
+                                duration = time.time() - start
+                                results[run_n] = {"maxiter": max_iter,'recombination': reCombIndex, 'popsize':popSize, 'tol':tol, 'duration':duration}
+                                
+                                # result info
+                                for attribute in res.keys():
+                                    results[run_n][attribute] = str(res[attribute])
+                                results[run_n]["callback"] = list(fun_all)
+                                fun_all.clear()
+                                global nit 
+                                nit = 0
+                                run_n += 1
+    return results

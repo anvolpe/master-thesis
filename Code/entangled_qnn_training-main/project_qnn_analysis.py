@@ -20,6 +20,7 @@ import pandas as pd
 from scipy.optimize import minimize, dual_annealing
 import re
 
+# TODO: in eine funktion mit der andere load_jason... packen
 def load_json_files(directory):
     data = []
     for filename in os.listdir(directory):
@@ -267,13 +268,18 @@ def boxplot_fun_values_per_optimizers(data, opt):
     plt.close()
     
 
-def get_conf_ids(data_type, num_data_points, s_rank):
+def get_conf_ids(data_type, num_data_points, s_rank,every_fifth_config=False):
     '''
         Returns a list of config ids that correspond to data_type, num_data_points and s_rank.
         data_type (String): random, orthogonal, non_lin_ind, var_s_rank
         num_data_points (String): 1,2,3,4
         s_rank (String): 1,2,3,4
+        every_fifth_config (bool): true, if there are only json files for every fifth config (used for testing purposes). Default: false
     '''
+    # use to determine which conf_ids should be added to list (every single one or every fifth)
+    mod = 1
+    if(every_fifth_config):
+        mod=5
     data = []
     conf_id_list = []
     file_path = "Code/entangled_qnn_training-main/data/configDict.json"
@@ -281,7 +287,7 @@ def get_conf_ids(data_type, num_data_points, s_rank):
         try:
             data = json.load(file)
             for i in range(len(data)):
-                if(data[str(i)]["data_type"]==data_type and data[str(i)]["num_data_points"]==num_data_points and data[str(i)]["s_rank"]==s_rank):
+                if(i%mod == 0 and data[str(i)]["data_type"]==data_type and data[str(i)]["num_data_points"]==num_data_points and data[str(i)]["s_rank"]==s_rank):
                     conf_id_list.append(i)
         except json.JSONDecodeError:
             print(f"Fehler beim Laden der Datei: {file_path}")
@@ -308,7 +314,7 @@ def load_json_data(directory, conf_id_list):
             print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
     return all_data
 
-def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_points, s_rank):
+def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_points, s_rank,every_fifth_config=False):
     '''
         For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
         config id if the config_id fullfills data_type, num_data_points, s_rank. 
@@ -317,7 +323,15 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
         data_type (String): random, orthogonal, non_lin_ind, var_s_rank
         num_data_points (String): 1,2,3,4
         s_rank (String): 1,2,3,4
+        every_fifth_config (bool): true, if there are only json files for every fifth config (used for testing purposes). Default: false
     '''
+    # Determine key names for maxiter (TODO: change back if changed during final experiment)
+    maxiter_name = "maxiter"
+    nit_name = "nit"
+    if(opt=="genetic_algorithm"):
+        maxiter_name="max_generation/_iter"
+        nit_name = "ngeneration/max_iter"
+
     # Stepsize: Stepsize between Iterations whose fun value is saved in callback
     # for Powell, BFGS and Dual Annealing: stepsize = 1 (every iteration)
     # for all other optimizers: stepsize = 10 (every 10th iteration)
@@ -339,7 +353,7 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
     conf_id_list = {} # dictionary: for each possible value of the non-specified parameter a list of corresponding config_ids is saved
     for value in values:
         params_current = [value if v is None else v for v in params] #determine correct parameter values (substitute value for None)
-        conf_id_list[value] = get_conf_ids(data_type=params_current[0], num_data_points=params_current[1], s_rank=params_current[2])
+        conf_id_list[value] = get_conf_ids(data_type=params_current[0], num_data_points=params_current[1], s_rank=params_current[2],every_fifth_config=every_fifth_config)
 
     # for each list in conf_id_list (i.e. each possible value of non-specified parameter) (and each databatch): determine a list of mean callback values
     mean_fun_values = {}
@@ -366,9 +380,9 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
                                     
                                     # data must be dictionary and contain keys
                                     if isinstance(data, dict):
-                                        nit = data.get("nit", None) # nit: number of total iterations needed to reach optimal fun-value
+                                        nit = data.get(nit_name, None) # nit: number of total iterations needed to reach optimal fun-value
                                         fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
-                                        iter = data.get("maxiter", None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
+                                        iter = data.get(maxiter_name, None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
                                         callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
                                         if(iter == max_iter):
                                             if nit is None or opt == 'dual_annealing': #cobyla doesn't save nit and dual_annealing saves the wrong value (max_iter) for nit
