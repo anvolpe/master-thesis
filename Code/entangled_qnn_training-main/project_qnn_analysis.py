@@ -551,38 +551,42 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
 if __name__ == "__main__":
     
     optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
-    datatype_list = ['random', 'orthogonal', 'non_lin_ind']#, 'var_s_rank']
+    datatype_list = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
     num_data_points_list = ['1', '2', '3', '4']
     s_rank_list = ['1', '2', '3', '4']
     origin_path = 'experimental_results/results/optimizer_results/'
+    maxiter_list = [100, 500, 1000,]
     
 
     # convergence plots for variable s_rank, but fixed datatype and num_data_points
     for datatype in datatype_list:
         for num_data_points in num_data_points_list:
-            save_path = f'qnn-experiments/experimental_results/results/convergence_plots/datatype/{datatype}/num_data_points/{num_data_points}'
-            for opt in optimizers:
-                fun_values, nit_values = extract_mean_callback_data(origin_path,1000,opt,datatype, num_data_points,None) 
-                convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, 1000, datatype, num_data_points, None)
-                print(opt, "ok")
+            for maxiter in maxiter_list:
+                save_path = f'qnn-experiments/experimental_results/results/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/num_data_points/{num_data_points}'
+                for opt in optimizers:
+                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points,None) 
+                    convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, datatype, num_data_points, None)
+                    print(opt, "ok")
 
     # convergence plots for variable num_data_points, but fixed datatype and s_rank
     for datatype in datatype_list:
         for s_rank in s_rank_list:
-            save_path = f'qnn-experiments/experimental_results/results/convergence_plots/datatype/{datatype}/s_rank/{s_rank}'
-            for opt in optimizers:
-                fun_values, nit_values = extract_mean_callback_data(origin_path,1000,opt,datatype, None, s_rank) 
-                convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, 1000, datatype, None, s_rank)
-                print(opt, "ok")   
+            for maxiter in maxiter_list:
+                save_path = f'qnn-experiments/experimental_results/results/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/s_rank/{s_rank}'
+                for opt in optimizers:
+                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank) 
+                    convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, datatype, None, s_rank)
+                    print(opt, "ok")   
 
     # convergence plots for variabel datatype, but fixed num_data_points and s_rank
     for s_rank in s_rank_list:
         for num_data_points in num_data_points_list:
-            save_path = f'qnn-experiments/experimental_results/results/convergence_plots/s_rank/{s_rank}/num_data_points/{num_data_points}'
-            for opt in optimizers:
-                fun_values, nit_values = extract_mean_callback_data(origin_path,1000,opt,None, num_data_points,s_rank) 
-                convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, 1000, None, num_data_points, s_rank)
-                print(opt, "ok")
+            for maxiter in maxiter_list:
+                save_path = f'qnn-experiments/experimental_results/results/convergence_plots/maxiter/{maxiter}/s_rank/{s_rank}/num_data_points/{num_data_points}'
+                for opt in optimizers:
+                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points,s_rank) 
+                    convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, None, num_data_points, s_rank)
+                    print(opt, "ok")
 
     
 
