@@ -331,15 +331,12 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
     # Determine key names for maxiter (TODO: change back if changed during final experiment)
     maxiter_name = "maxiter"
     nit_name = "nit"
-    if(opt=="genetic_algorithm"):
-        maxiter_name="max_generation/_iter"
-        nit_name = "ngeneration/max_iter"
 
     # Stepsize: Stepsize between Iterations whose fun value is saved in callback
     # for Powell, BFGS and Dual Annealing: stepsize = 1 (every iteration)
     # for all other optimizers: stepsize = 10 (every 10th iteration)
     stepsize = 10
-    if opt in ['powell', 'bfgs', 'dual_annealing']:
+    if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm', 'diff_evolution']:
         stepsize = 1
 
     # check only one parameter (data_type, num_data_points, s_rank) is None:
@@ -456,7 +453,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
     # for Powell, BFGS and Dual Annealing: stepsize = 1 (every iteration)
     # for all other optimizers: stepsize = 10 (every 10th iteration)
     stepsize = 10
-    if opt in ['powell', 'bfgs', 'dual_annealing']:
+    if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm', 'diff_evolution']:
         stepsize = 1
 
     title = f'Convergence plot for {opt}, maxiter = {maxiter}, \n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
@@ -587,11 +584,12 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
 
 if __name__ == "__main__":
     
-    optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
+    #optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
+    optimizers = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
     datatype_list = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
     num_data_points_list = ['1', '2', '3', '4']
     s_rank_list = ['1', '2', '3', '4']
-    origin_path = 'experimental_results/results/optimizer_results/'
+    origin_path = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
     #maxiter_list = [100, 500, 1000]
     maxiter_list = [100,1000]
     

@@ -24,6 +24,20 @@ from project_qnn_analysis import *
 
 databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
 conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
+hyperparameters_per_opt = {"genetic_algorithm": ["maxiter", "crossover_type", "stop_criteria"], 
+                                "particle_swarm": ["maxiter", "ftol"],
+                                "diff_evolution": ["maxiter"],
+                                "nelder_mead": ["maxiter", "fatol", "xatol"],
+                                "bfgs": ["maxiter", "gtol", "xrtol", "eps"],
+                                "cobyla": ["maxiter", "tol","catol"],
+                                "powell": ["maxiter", "ftol", "xtol"],
+                                "slsqp": ["maxiter", "ftol", "eps"],
+                                "sgd": ["maxiter","learning_rate","eps"],
+                                "rmsprop": ["maxiter", "learning_rate", "eps"],
+                                "adam": ["maxiter", "learning_rate", "eps"],
+                                "dual_annealing": ["maxiter"]
+                                }
+
 
 def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
     '''
@@ -38,6 +52,9 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
     #choose correct dictionary key names in json file for a specific optimizer
     fun_key_name = "fun"
     nit_key_name = "nit"
+
+    if opt == "cobyla":
+        nit_key_name = "nfev"
 
     for i in range(len(data)):
         conf_id = data[i]["conf_id"]
@@ -107,6 +124,10 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
     os.makedirs(path, exist_ok=True)
     # replace "iterations" with "generations" in plots if opt is genetic algorithm
     nit_name = "iterations"
+    nit_name_short = "nit"
+    if(opt == "cobyla"):
+        nit_name = "objective function evaluations"
+        nit_name_short = "nfev"
     # make two boxplots per hyperparameter: one for function values, one for number of iterations
     for par in hyperparameters:
         #c1,c2 need to be analysed separately
@@ -128,7 +149,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
         plt.close()
 
         # Boxplot for number of iterations
-        file_path = os.path.join(path, f'{opt}_boxplot_nit_{par}.png')
+        file_path = os.path.join(path, f'{opt}_boxplot_{nit_name_short}_{par}.png')
         plt.figure()
         plt.boxplot(nit_dict.values())
         plt.xticks(range(1, len(nit_dict.keys()) + 1), nit_dict.keys())
@@ -159,6 +180,10 @@ def get_all_fun_values_for_opts(data, opt_list):
     return optimizer_data
 
 def all_opts_fun_value_boxplots(path,json_data, opt_list):
+    '''
+        TODO: anpassen, dass man Ergebnisse von allen Experimenten (i.e. alle Optimierer) hat. 
+        TODO: Speicherplatz und Zeit(?) sparen indem man nicht alle json files in einem dictionary speichert
+    '''
     fun_dict = get_all_fun_values_for_opts(json_data,opt_list)
     # Boxplot for function values
     file_path = os.path.join(path, f'all_opt_boxplot_fun.png')
@@ -172,25 +197,62 @@ def all_opts_fun_value_boxplots(path,json_data, opt_list):
     plt.savefig(file_path)
     plt.close()
 
-
-if __name__ == "__main__":
-    print(conf_ids_to_skip)
-
-
-    directory = "experimental_results/results/optimizer_results/hyperparameter_tests"
+def create_all_hyperparameter_boxplots():
+    '''
+        Creates boxplot for each optimizer based on Data from final Experiment run.
+        For each hyperparameter for each optimizer two boxplots are created: 
+            one for the distribution of the achieved function value for each value of this hyperparameter and
+            one for the distribution of the needed iterations for each value of this hyperparameter.
+        
+        Beware: directories for experiment result json-files must be correct.
+        Beware: At least 7GB RAM are needed to run this.
+    '''
+    # experiment part 1: nelder_mead, bfgs, cobyla, powell, slsqp, sgd, rmsprop, adam
+    directory = "experimental_results/results/optimizer_results/experiment_part1"
+    opt_list = ["nelder_mead","bfgs","cobyla","powell","slsqp","sgd","rmsprop","adam","dual_annealing"]
+    json_data = load_json_files(directory)
+    # create boxplots for experiment part 1
+    for opt in opt_list:
+        save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
+        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+        print(f"{opt} done")
+    #all_opts_fun_value_boxplots(save_path,json_data,opt_list)
+    del json_data
+    # experiment part 1: nelder_mead, bfgs, cobyla, powell, slsqp, sgd, rmsprop, adam
+    directory = "experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE"
     opt_list = ["genetic_algorithm", "particle_swarm", "diff_evolution"]
     json_data = load_json_files(directory)
-    hyperparameters_per_opt = {"genetic_algorithm": ["maxiter", "crossover_type", "stop_criteria"], 
-                                "particle_swarm": ["maxiter", "ftol"],
-                                "diff_evolution": ["maxiter"]}
-    save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/'
+    # create boxplots for experiment part 1
+    for opt in opt_list:
+        save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
+        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+        print(f"{opt} done")
+    del json_data
+
+if __name__ == "__main__":
+    start = time.time()
+    print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
+
+    #create_all_hyperparameter_boxplots()
+
+    # experiment part 1: nelder_mead, bfgs, cobyla, powell, slsqp, sgd, rmsprop, adam
+    directory = "experimental_results/results/optimizer_results/experiment_part1"
+    opt_list = ["cobyla"]
+    json_data = load_json_files(directory)
+    # create boxplots for experiment part 1
+    for opt in opt_list:
+        save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
+        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+        print(f"{opt} done")
+    #all_opts_fun_value_boxplots(save_path,json_data,opt_list)
+    del json_data
+
+    end = time.time()
+    print(f"end time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))}")
+    print(f"total runtime (with callback): {np.round((end-start)/60,2)}min") 
     
 
-    # create boxplots for GA and PSO and DE
-    for opt in opt_list:
-        save_path = f'qnn-experiments/experimental_results/results/hyperparameter_boxplots/{opt}'
-        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
-    all_opts_fun_value_boxplots(save_path,json_data,opt_list)
+
 
     
     
