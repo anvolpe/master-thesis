@@ -233,19 +233,7 @@ if __name__ == "__main__":
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
 
-    #create_all_hyperparameter_boxplots()
-
-    # experiment part 1: nelder_mead, bfgs, cobyla, powell, slsqp, sgd, rmsprop, adam
-    directory = "experimental_results/results/optimizer_results/experiment_part1"
-    opt_list = ["cobyla"]
-    json_data = load_json_files(directory)
-    # create boxplots for experiment part 1
-    for opt in opt_list:
-        save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
-        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
-        print(f"{opt} done")
-    #all_opts_fun_value_boxplots(save_path,json_data,opt_list)
-    del json_data
+    create_all_hyperparameter_boxplots()
 
     end = time.time()
     print(f"end time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))}")
