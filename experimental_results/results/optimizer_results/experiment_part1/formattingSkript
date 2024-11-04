@@ -1,0 +1,30 @@
+import json
+import os
+
+# Run following script to format the following .json files.
+#Base file path | please modify 
+base_path = '/Users/serhatceri/qnn-experiments-4/experimental_results/results/optimizer_results/experiment_part1'
+
+
+#set range 
+# Loop through the main ID range and run ID range
+for main_id in range(0, 10):           
+    for run_id in range(0, 10):          
+        #filename
+        file_name = f'conf_{main_id}_run_{run_id}_opt.json'
+        file_path = os.path.join(base_path, file_name)
+ 
+        try:
+            # Open JSON file to read data
+            with open(file_path) as config:
+                data = json.load(config)
+            
+            # Format data with indentation and write it back to the same file
+            with open(file_path, 'w') as config:
+                json.dump(data, config, indent=4)
+            
+            print(f"Formatted {file_name} successfully.")
+        except FileNotFoundError:
+            print(f"{file_name} wasn’t found.")
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON in {file_name}.")
