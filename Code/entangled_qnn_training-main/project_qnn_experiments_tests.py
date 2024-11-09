@@ -27,9 +27,11 @@ def test_several_optimizers():
     '''
     # setup qnn configuration
     conf_id = 0
-    data_type = "random" # random, orthogonal, non_lin_ind, var_s_rank
+    # Choose from: "random", "orthogonal", "non_lin_ind", "var_s_rank"
+    data_type = "random" 
     num_data_points = 1
-    s_rank = 1 # Schmidt-Rank
+    # Schmidt-Rank (Choose from: 1-4)
+    s_rank = 1
     var = "data_batch_0"
     databatch_id = int(var.strip("datbch_"))
 
@@ -46,7 +48,7 @@ def test_several_optimizers():
     data_points = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4)) #data_points: 1x4x4 tensor
 
 
-    # setup qnn
+    # Initialize the qnn
     qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
     expected_output = torch.matmul(unitary, data_points)
     y_true = expected_output.conj()
@@ -57,14 +59,10 @@ def test_several_optimizers():
         cost = cost_func(data_points, y_true, qnn, device="cpu") 
         return cost.item()
     results = {}
-    # verschiedene inital_param_values ausprobieren und avg bilden? 
-    # TODO: gleich für alle Konfigs oder nur gleich für eine Konfig aber da für alle Optmimierer?
-    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
+     # Test various initial parameter values and potentially calculate the average performance
+     # Initial parameter values within the range [0, 2π] for all optimizers (as in victor_thesis_landscapes.py)
+    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) 
     initial_param_values_tensor = torch.tensor(initial_param_values)
-
-
-    #writer = csv.writer(file)
-    #writer.writerow(["Optimizer", "Result", "Duration"])
 
     # all results of all optimizer experiments for this config
     results = {}
@@ -90,7 +88,7 @@ def test_several_optimizers():
             #result_dict[var][opt_name] = future.result()
             result_dict[var][opt_name] = result
 
-    # save results in json file "conf_[conf_id]_opt.json"
+    # Save results in json file "conf_[conf_id]_opt.json"
     os.makedirs("experimental_results/results/optimizer_results", exist_ok=True)
     file = open(f"experimental_results/results/optimizer_results/conf_{conf_id}_test.json", mode="w")
     json.dump(result_dict, file)
@@ -100,20 +98,22 @@ def test_single_optimizer(callback: bool):
     Test function for conf_id 0 and data_batch_0 for one optimizer.
     '''
 
-    # setup qnn configuration
+    # Setup qnn configuration
     conf_id = 0
-    data_type = "random" # random, orthogonal, non_lin_ind, var_s_rank
+    # Choose from: "random", "orthogonal", "non_lin_ind", "var_s_rank"
+    data_type = "random" 
     num_data_points = 1
-    s_rank = 1 # Schmidt-Rank
+    # Schmidt-Rank (Choose from: 1-4)
+    s_rank = 1
     var = "data_batch_0"
     databatch_id = int(var.strip("datbch_"))
 
     # setup dictionary for dumping info into json file later
     result_dict = {"conf_id":conf_id, "data_type":data_type, "num_data_points":num_data_points, "s_rank":s_rank}
     val = "[[-0.45070455-0.02711853j,0.78437395-0.06613086j,0.06358678+0.19963393j,-0.07343613+0.35668523j],[-0.01890143-0.03813363j,0.32408202+0.25557629j,0.05872864-0.68979805j,0.55466693-0.20227297j],[-0.11215405+0.64023111j,-0.13344055+0.29565494j,-0.49012687-0.19046288j,-0.04241254+0.44046348j],[0.55771659+0.24656916j,0.31851997-0.05798805j,0.28761525-0.34294258j,-0.56718418+0.03616933j]]"
-    result_dict["unitary"] = val#.strip("\"")
+    result_dict["unitary"] = val
     val,_ = re.subn('\[|\]|\\n', '', val)
-    unitary = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4))#unitary: 4x4 tensor
+    unitary = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4)) #unitary: 4x4 tensor
     val = '[[[0.09314128-0.12946863j,0.39382838-0.19799267j,0.05133879+0.12112185j,0.08106995-0.04021906j],[0.07622026-0.09754417j,0.31152873-0.14143589j,0.03608905+0.09551662j,0.06411194-0.02869752j],[0.11804856-0.19626647j,0.54031288-0.32976236j,0.08774511+0.16729872j,0.1112873-0.06711204j],[-0.01827577+0.10086995j,-0.17383409+0.2237231j,-0.06326177-0.05610261j,-0.03593256+0.04574145j]]]'
     result_dict[var] = {}
     result_dict[var]["databatch"] = val#.strip("\"")
@@ -128,17 +128,18 @@ def test_single_optimizer(callback: bool):
     
     # objective function based on cost function of qnn 
     def objective(x):
-        qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
+        qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) 
         cost = cost_func(data_points, y_true, qnn, device="cpu") 
         return cost.item()
     results = {}
-    # verschiedene inital_param_values ausprobieren und avg bilden? 
-    # TODO: gleich für alle Konfigs oder nur gleich für eine Konfig aber da für alle Optmimierer?
-    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
+    
+    # Generate initial parameter values for the qnn from the range [0, 2*pi]
+    initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions)
     initial_param_values_tensor = torch.tensor(initial_param_values)
 
 
-    # try adam for 1000 iterations, looking at jacobian & x & fun(x)
+    # Run the optimization using the Nelder-Mead optimizer
+    # include a callback function to save intermediate results during the optimization process 
     if callback==True:
         res = minimize(objective, initial_param_values, method='Nelder-Mead', callback=saveIntermResult,
                         options={"maxiter": 1000, "eps":1e-5})

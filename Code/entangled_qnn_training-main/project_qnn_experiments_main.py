@@ -33,11 +33,13 @@ max_iters = [100,500,1000]
 #tols = [1e-5]
 tols = [1e-5, 1e-10]
 
-#tols = [1e-10, 1e-15] schlechte ergebnisse, 1e-5 viel besser
-#tols = [1e-2, 1e-5]
-#bounds = [(0,2*np.pi)*dimensions]
+# Tolerance levels for optimization, smaller values gave poor results, while 1e-5 was much better.
+# tols = [1e-2, 1e-5]
+
+# Define default parameter bounds for optimization, covering the range [0, 2π] across all dimensions.
 default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
-#bounds = list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi))
+
+# bounds = list(zip(np.ones(6) * (-2) * np.pi, np.ones(6) * 2 * np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 #learning_rates = [0.0001]
 
@@ -55,12 +57,16 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
         data_points = databatches[i]
         databatch_key = f"databatch_{i}"
         result_dict[databatch_key] = {}
+        
+# Format data points as a single-line string to store in the results dictionary       
         data_points_string = (
             np.array2string(data_points.numpy(), separator=",")
             .replace("\n", "")
             .replace(" ", "")
         )
         result_dict[databatch_key]["databatch"] = data_points_string
+        
+# Initialize parameter values randomly in the range [0, 2π] for optimization        
         initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions)
         initial_param_values_string = (
             np.array2string(initial_param_values, separator=",")
@@ -69,19 +75,19 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
         )
         result_dict[databatch_key]["initial param values"] = initial_param_values_string
         
-        # specifications of qnn
+        #Define quantum neural network structure
         qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
         
         expected_output = torch.matmul(unitary, data_points)
         y_true = expected_output.conj()
         
-        # objective function based on cost function of qnn 
+        #Define the objective function for optimizers based on QNN cost function
         def objective(x):
-            qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
+            qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape)
             cost = cost_func(data_points, y_true, qnn, device="cpu") 
             return cost.item()
         
-        # objective function for Particle Swarm Optimization
+         # Define the objective function specifically for Particle Swarm Optimization
         def objective_for_pso(x):
             '''
             Adapted for Particle Swarm optimization.
@@ -96,9 +102,9 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
                 cost_values.append(cost.item())
             return cost_values
 
-        # verschiedene inital_param_values ausprobieren und avg bilden? 
-        #initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions) # [0,2pi] siehe victor_thesis_landscapes.py, bei allen optimierern gleich
-        #initial_param_values_tensor = torch.tensor(initial_param_values)
+        # Try different initial parameter values and compute the average performance
+        # initial_param_values = np.random.uniform(0, 2 * np.pi, size=dimensions)  Range [0, 2π] (Victor's thesis landscapes)
+        # initial_param_values_tensor = torch.tensor(initial_param_values)
 
         # run optimizer experiments
         sgd_optimizers = [sgd, rmsprop, adam]
@@ -108,12 +114,12 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
         else:
             optimizers = opt_list
         
-        # TODO: ProcessPoolExecutor: funktioniert nicht, weil pickle verwendet wird und objective eine lokal definierte Funktion ist 
-        # (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
-        # Multiprocessing (??) könnte funktionieren. Oder eigene Klasse??
-        #with ProcessPoolExecutor(cpu_count()) as exe:
-        #with multiprocessing.pool.Pool() as pool:
-
+        # TODO: ProcessPoolExecutor (attempt to parallelize optimization execution) - does not work here due to pickling issues,
+        # as 'objective' is locally defined (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
+        # Multiprocessing or class-based structure could be a solution.
+        # with ProcessPoolExecutor(cpu_count()) as exe:
+        # with multiprocessing.pool.Pool() as pool:
+        
         for opt in optimizers:
             if opt == sgd_experiment:
                 for variant in sgd_optimizers:
