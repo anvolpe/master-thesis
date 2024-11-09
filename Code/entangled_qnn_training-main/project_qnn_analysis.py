@@ -317,7 +317,7 @@ def load_json_data(directory, conf_id_list):
             print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
     return all_data
 
-def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_points, s_rank,every_fifth_config=False):
+def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_points, s_rank,every_fifth_config=False,target_learning_rate=None):
     '''
         For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
         config id if the config_id fullfills data_type, num_data_points, s_rank. 
@@ -382,7 +382,8 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
                                         fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
                                         iter = data.get(maxiter_name, None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
                                         callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
-                                        if(iter == max_iter):
+                                        learning_rate = data.get("learning_rate", None) # for SGD optimizers: learning rate. Used to filter for specific learning rate. If optimizer does not use learning_rate it is None
+                                        if(iter == max_iter and float(learning_rate) == target_learning_rate): # if target_learning_rate is not specified, it is None
                                             if nit is None or opt == 'dual_annealing': #cobyla doesn't save nit and dual_annealing saves the wrong value (max_iter) for nit
                                                 nit = (len(callback)-1)*stepsize
                                             if nit is not None and fun is not None:
@@ -466,7 +467,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
     none_param = param_names[none_indices[0]]
 
     #colors for each config id
-    cmap = matplotlib.cm.get_cmap('Spectral')
+    cmap = matplotlib.colormaps["coolwarm"]
     plt.figure()
     c = 0 # needed to determine correct color
     for param_value in mean_fun_data.keys():
@@ -477,7 +478,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         plt.plot(x,y, color=color, label=label)
         c += 1
     plt.ylim(0,1)
-    plt.xlabel('Iterations')
+    plt.xlabel('Iteration')
     plt.ylabel('Function value')
     plt.legend()
     plt.title(title)
@@ -555,7 +556,7 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
     save_path = 'qnn-experiments/experimental_results/results/convergence_plots/'
     title = f'Convergence plot for {opt}, maxiter = {maxiter}, databatch = {databatch}\n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
     #colors for each config id
-    cmap = matplotlib.cm.get_cmap('Spectral')
+    cmap = matplotlib.colormaps["tab20c"]
     plt.figure()
     c = 0
     for id in data.keys():
@@ -579,23 +580,28 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
     plt.savefig(file_path)
     plt.close()
 
+def make_all_convergence_plots_for(optimizers, origin_path,learning_rate=None,save_path='qnn-experiments/plots/convergence_plots/'):
+    '''
+        Make all convergence plots for each combination of configuration attributes (data type, number of data points and Schmidt-rank)
+        for each optimizer in optimizers for maximum number of iterations 100 and 1000. 
+        Plots are saved as .png files in qnn-experiments/plots/convergence_plots.
+        Example file path for a plot with maximum 1000 iterations, datatype=random and num_data_points=1:
+        qnn-experiments/plots/convergence_plots/maxiter/1000/datatype/random/num_data_points/
 
+        Pre-Req:
+            json files must be in origin_path for all optimizers in optimizers 
+            and optimizers must contain Strings exactly matching the optimizer name in the json-file
+            if a save_path is given it must end with "/"
+    '''
+    if(save_path[-1] != "/"):
+        raise NotADirectoryError("Invalid save path. Save path must end with /.")
 
-
-if __name__ == "__main__":
-    
-    #optimizers = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
-    optimizers = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
     datatype_list = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
     num_data_points_list = ['1', '2', '3', '4']
     s_rank_list = ['1', '2', '3', '4']
-    origin_path = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
-    #maxiter_list = [100, 500, 1000]
     maxiter_list = [100,1000]
-    
-    start = time.time()
-    print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
 
+    
     # convergence plots for variable s_rank, but fixed datatype and num_data_points
     print("Variable S-Rank in progress...")
     for maxiter in maxiter_list:
@@ -604,10 +610,10 @@ if __name__ == "__main__":
             print(f"datatype: {datatype}")
             for num_data_points in num_data_points_list:
                 print(f"num_data_points: {num_data_points}")
-                save_path = f'qnn-experiments/plots/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/num_data_points/{num_data_points}'
+                path = save_path+f'maxiter/{maxiter}/datatype/{datatype}/num_data_points/{num_data_points}'
                 for opt in optimizers:
-                    fun_values, nit_values= extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points,None) 
-                    convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, datatype, num_data_points, None)
+                    fun_values, nit_values= extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points,None,target_learning_rate=learning_rate) 
+                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, num_data_points, None)
                     print(f"optimizer: {opt} done")
 
     # convergence plots for variable num_data_points, but fixed datatype and s_rank
@@ -621,10 +627,10 @@ if __name__ == "__main__":
                     print("skipping s-rank = 2, datatype = non_lin_ind")
                     continue
                 print(f"s-rank: {s_rank}")
-                save_path = f'qnn-experiments/plots/convergence_plots/maxiter/{maxiter}/datatype/{datatype}/s_rank/{s_rank}'
+                path = save_path+f'maxiter/{maxiter}/datatype/{datatype}/s_rank/{s_rank}'
                 for opt in optimizers:
-                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank) 
-                    convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, datatype, None, s_rank)
+                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank,target_learning_rate=learning_rate) 
+                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, None, s_rank)
                     print(f"optimizer: {opt} done")  
 
     # convergence plots for variabel datatype, but fixed num_data_points and s_rank
@@ -635,24 +641,42 @@ if __name__ == "__main__":
             print(f"s-rank: {s_rank}")
             for num_data_points in num_data_points_list:
                 print(f"num_data_points: {num_data_points}")
-                save_path = f'qnn-experiments/plots/convergence_plots/maxiter/{maxiter}/s_rank/{s_rank}/num_data_points/{num_data_points}'
+                path = save_path+f'maxiter/{maxiter}/s_rank/{s_rank}/num_data_points/{num_data_points}'
                 for opt in optimizers:
-                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points,s_rank) 
-                    convergence_plot_per_optimizer(save_path, fun_values,nit_values, opt, maxiter, None, num_data_points, s_rank)
+                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points,s_rank,target_learning_rate=learning_rate) 
+                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, None, num_data_points, s_rank)
                     print(f"optimizer: {opt} done")
-    print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
+
+def make_all_convergence_plots():
+    '''
+        Make all convergence plots for each combination of configuration attributes (data type, number of data points and Schmidt-rank)
+        for each optimizer in optimizers for maximum number of iterations 100 and 1000. 
+        Plots are saved as .png files in qnn-experiments/plots/convergence_plots.
+        Example file path for a plot with maximum 1000 iterations, datatype=random and num_data_points=1:
+        qnn-experiments/plots/convergence_plots/maxiter/1000/datatype/random/num_data_points/
+    '''
+
+    optimizers1 = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
+    optimizers2 = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
+
+    origin_path1 = 'experimental_results/results/optimizer_results/experiment_part1'
+    origin_path2 = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
     
+    start = time.time()
+    print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
 
-    #path = "experimental_results/results/optimizer_results/bounds/"
-    #data = load_json_files(path)
-    #print(data[0]["conf_id"])
-    #res_min,res_max,res = extract_solution_x_data(data)
-    #create_min_max_boxplots(res_min, res_max, 'qnn-experiments/experimental_results/results/box_plots/bounds/no_outliers')
-    '''path = 'experimental_results/results/2024-07-19_allConfigs_allOpt'
-    json_data = load_json_files(path)
-    _,_,_,data = extract_optimizer_data(json_data,use_nits=False)
+    make_all_convergence_plots_for(optimizers1, origin_path1)
+    make_all_convergence_plots_for(optimizers2, origin_path2)
 
-    optimizers = ["nelder_mead", "powell", "cobyla", "bfgs", "slsqp","sgd", "adam", "rmsprop", "dual_annealing"]
-    for opt in optimizers:
-        boxplot_fun_values_per_optimizers(data, opt)'''
+    print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
+
+
+if __name__ == "__main__":
+    
+    learning_rate = 0.01
+    optimizers = ["sgd", "adam", "rmsprop"]
+    origin_path = 'experimental_results/results/optimizer_results/experiment_part1'
+    save_path = f'qnn-experiments/plots/convergence_plots/SGD_learning_rate_{learning_rate}/'
+
+    make_all_convergence_plots_for(optimizers, origin_path,learning_rate=0.01,save_path=save_path)
     
