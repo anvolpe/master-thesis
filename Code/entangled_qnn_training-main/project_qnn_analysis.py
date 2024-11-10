@@ -553,7 +553,7 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
     '''
         DEPRECATED
     '''
-    save_path = 'qnn-experiments/experimental_results/results/convergence_plots/'
+    save_path = 'qnn-experiments/experimental_results/results/convergence_plots/' # this Path doesn't exist 
     title = f'Convergence plot for {opt}, maxiter = {maxiter}, databatch = {databatch}\n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
     #colors for each config id
     cmap = matplotlib.colormaps["tab20c"]
