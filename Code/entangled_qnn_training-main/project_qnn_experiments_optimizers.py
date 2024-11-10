@@ -9,7 +9,7 @@ from victor_thesis_plots import *
 from victor_thesis_metrics import *
 from victor_thesis_experiments_main import *
 
-from sgd_for_scipy import *
+from project_qnn_sgd_for_scipy import *
 from scipy.optimize import minimize, dual_annealing, differential_evolution
 import pyswarms as ps
 import pygad as pg

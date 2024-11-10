@@ -14,7 +14,7 @@ from project_qnn_experiments_optimizers import *
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import cpu_count
-from sgd_for_scipy import *
+from project_qnn_sgd_for_scipy import *
 import os
 from scipy.optimize import minimize, dual_annealing
 import pyswarms as ps

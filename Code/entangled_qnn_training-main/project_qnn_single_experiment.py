@@ -12,7 +12,7 @@ from victor_thesis_metrics import *
 from victor_thesis_experiments_main import *
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
-from sgd_for_scipy import *
+from project_qnn_sgd_for_scipy import *
 from jax import jacrev
 import os
 import pandas as pd

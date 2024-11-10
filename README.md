@@ -15,7 +15,7 @@ qnn-experiments/plots contains all plots (fun vs. max. iterations (boxplot), ave
 
 So far only convergence plots for maxiter = 1000 exist.
 
-Convergence Plots are sorted such that folder names indicate which parameter (datatype, num-data-points and s-rank) are fixed and which value they have, i.e. all convergence plots where datatype is "random", num-data-points is 1 and s-rank is variable are in /qnn-experiments/plots/convergence_plots/maxiter = 1000/datatype/random/num_data_points/1.
+Convergence Plots are sorted such that folder names indicate which parameter (datatype, num-data-points and s-rank) are fixed and which value they have, i.e. all convergence plots where datatype is "random", num-data-points is 1 and s-rank is variable are in /qnn-experiments/plots/project_qnn_convergence_plots/maxiter = 1000/datatype/random/num_data_points/1.
 
 ## Dependencies
 
