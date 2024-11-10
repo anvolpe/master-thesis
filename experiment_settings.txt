@@ -1,49 +1,48 @@
+Attributes and Parameters:
 
-The meaning of attributes and parameters: 
+* x: The solution of the optimization.
+  Data Type: ndarray
+* success: Indicates whether the optimizer exited successfully.
+  Data Type: boolean
+* status: The termination status of the optimizer.
+  Data Type: integer
+* message: Description of the cause of termination.
+  Data Type: string
+* fun, jac, hess: Values of the objective function, Jacobian, and Hessian (or its inverse, if available).
+  Data Type: ndarray
+* hess_inv: Documentation for the Hessian inverse.
+  Data Type: Varies based on function used.
+* nfev, njev, nhev: Number of evaluations of the objective function, Jacobian, and Hessian, respectively.
+  Data Type: integer
+* nit: The number of iterations performed by the optimizer.
+  Data Type: integer
+* maxcv: The maximum constraint violation.
+  Data Type: float
 
-- x = The solution of the optimization. Data type: ndarray
-
-- success = Whether or not the optimizer exited successfully. Data type: boolean
-
-- status = Termination status of the optimizer. Data type: integer
-
-- message = Description of the cause of the termination. Data type: String
-
-- fun, jac, hess = Values of objective function, Jacobian, Hessian or its inverse (if available). Data type: ndarray
-
-- hess_inv =  the documentation of the function in question.
-
-- nfev, njev, nhev = Number of evaluations of the objective functions and of its Jacobian and Hessian. Data type: integer
-
-- nit = Number of iterations performed by the optimizer. Data type: integer
-
-- maxcv = The maximum constraint violation. Data type: float
-
----------------------------------------------------------------------------------------------------------------
 
 Options for Nelder-Mead:
 
--disp = Set to True to print convergence messages. Data type: boolean
+* disp: Set to True to print convergence messages.
+   Data Type: boolean
+* maxiter, maxfev: Maximum allowed number of iterations and function evaluations.
+   Data Type: integer
+* initial_simplex: The initial simplex. If given, it overrides x0.
+   Data Type: array_like of shape (N + 1, N)
 
-- maxiter, maxfev = Maximum allowed number of iterations and function evaluations. Data type: integer
+Additional Options:
+* return_all: Set to True to return a list of the best solutions at each iteration.
+  Data Type: boolean
+* xatol: The acceptable absolute error in xopt between iterations for convergence.
+  Data Type: float
+* fatol: The acceptable absolute error in func(xopt) between iterations for convergence.
+  Data Type: float
+* adaptive: If set to True, adapts algorithm parameters to the dimensionality of the problem.
+  Data Type: boolean
+* bounds: Bounds on the variables.
+  Data Type: Sequence
 
--initial_simplex = Initial simplex. If given, overrides x0. D. t. = array_like of shape (N + 1, N)
-
-Additional options:
-
-- return_all = Set to True to return a list of the best solution at each of the iterations. D. t. = boolean
-
--xatol = Absolute error in xopt between iterations that is acceptable for convergence. D. t. = float
-
--fatol = Absolute error in func(xopt) between iterations that is acceptable for convergence. A number
-
--adaptive = Adapt algorithm parameters to dimensionality of problem. D. t. Boolean
-
--bounds = Bounds on variables. A sequence
-
-What we used: 
-
-- maxiter,fatol and xatol
+Parameters Used:
+* maxiter, fatol, and xatol
 
 ---------------------------------------------------------------------------------------------------------------
 
