@@ -7,10 +7,8 @@ from autograd import grad
 
 """
     Original by jcmgray: https://gist.github.com/jcmgray/e0ab3458a252114beecb1f4b631e19ab
+    adapted by adding approximations of gradient using scipy.optimize.approx_fprime
 """
-
-# TODO: funktionieren alle nicht richtig (siehe conf_0_opt.json: 
-# fun-Wert ist bei allen 3 bei jedem Durchlauf 0.795, sollte aber näher an 0.00... sein)
 
 def sgd(
     fun,
@@ -61,19 +59,11 @@ def rmsprop(
 
     Adapted from ``autograd/misc/optimizers.py``.
     """
-    #x = torch.tensor(x0)
     x = x0
-    #avg_sq_grad = torch.ones_like(x)
     avg_sq_grad = np.ones_like(x)
-    '''print("START")
-    print("x",x)
-    print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))'''
-    #fun_grad = grad(fun)
+
     for i in range(startiter, startiter + maxiter):
-        #g = torch.autograd.functional.jacobian(fun,x)
         g = approx_fprime(x,fun)  
-        #g = fun_grad(x) 
         intermediate_result = OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
         if callback and callback(intermediate_result):
             break
@@ -81,10 +71,6 @@ def rmsprop(
         avg_sq_grad = avg_sq_grad * gamma + g**2 * (1 - gamma)
         x = x - learning_rate * g / (np.sqrt(avg_sq_grad) + eps)
 
-    '''print("END")
-    print("x",x)
-    print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))'''
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
 
@@ -109,23 +95,10 @@ def adam(
     Adapted from ``autograd/misc/optimizers.py``.
     """
     x = x0
-    #x = torch.tensor(x0)
-    #m = torch.zeros_like(x)
     m = np.zeros_like(x)
-    #v = torch.zeros_like(x)
     v = np.zeros_like(x)
-    '''print("START")
-    print("x",x)
-    print("fun", fun(x))
-    print("jac", approx_fprime(x,fun))'''
     for i in range(startiter, startiter + maxiter):
-        #print("Iteration",i)
-        #g = torch.autograd.functional.jacobian(fun,x) liefert falsche ergebnisse -> nochmal probieren
-        g = approx_fprime(x,fun) #liefert als einzige verwendbare Ergebnisse, aber sehr langsam
-        #g = fun_grad(x) #kompiliert nicht
-        #print("Jacobian",g)
-        #print("x", x)
-        #print("fun(x)", fun(x))
+        g = approx_fprime(x,fun) 
         intermediate_result = OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
         if callback and callback(intermediate_result):
             break
@@ -135,9 +108,5 @@ def adam(
         mhat = m / (1 - beta1**(i + 1))  # bias correction.
         vhat = v / (1 - beta2**(i + 1))
         x = x - learning_rate * mhat / (np.sqrt(vhat) + eps)
-    '''print("END")
-    print("x",x)
-    print("fun", fun(x))
-    print("grad", approx_fprime(x,fun))'''
     i += 1
     return OptimizeResult(x=x, fun=fun(x), jac=g, nit=i, nfev=i, success=True)
