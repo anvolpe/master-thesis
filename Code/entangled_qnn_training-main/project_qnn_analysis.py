@@ -23,6 +23,12 @@ import re
 conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
 combinations_to_skip = [["non_lin_ind","2","3"],["non_lin_ind","3","3"],["non_lin_ind","4","3"]] # Format [data_type, num_data_points, s_rank]
 
+opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD', 
+              'adam':'Adam', 'rmsprop':'RMSprop', 'bfgs':'BFGS','slsqp':'SLSQP',
+              'dual_annealing':'Dual Annealing','cobyla':'COBYLA',
+              'genetic_algorithm':'Genetic Algorithm', 'particle_swarm': 'Particle Swarm Optimization',
+              'diff_evolution':'Differential Evolution'}
+
 # TODO: in eine funktion mit der andere load_jason... packen
 def load_json_files(directory):
     data = []
@@ -341,7 +347,7 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
         stepsize = 1
 
     # check only one parameter (data_type, num_data_points, s_rank) is None:
-    param_values = {'data_type': ["random", "orthogonal", "non_lin_ind", "var_s_rank"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
+    param_values = {'data_type': ["random", "orthogonal", "var_s_rank", "non_lin_ind"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
     param_names = ['data_type', 'num_data_points', 's_rank']
     params = [data_type, num_data_points, s_rank]
     none_indices = [i for i in range(len(params)) if params[i] == None]
@@ -384,7 +390,7 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
                                         iter = data.get(maxiter_name, None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
                                         callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
                                         learning_rate = data.get("learning_rate", None) # for SGD optimizers: learning rate. Used to filter for specific learning rate. If optimizer does not use learning_rate it is None
-                                        if(iter == max_iter and float(learning_rate) == target_learning_rate): # if target_learning_rate is not specified, it is None
+                                        if(iter == max_iter and learning_rate == target_learning_rate): # if target_learning_rate is not specified, it is None
                                             if nit is None or opt == 'dual_annealing': #cobyla doesn't save nit and dual_annealing saves the wrong value (max_iter) for nit
                                                 nit = (len(callback)-1)*stepsize
                                             if nit is not None and fun is not None:
@@ -415,8 +421,6 @@ def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_poi
         fun_arrays = [np.array(x) for x in fun_values]
         mean_fun_values[value] = [np.mean(k) for k in zip(*fun_arrays)]
         # compute maximum of total number of iterations (nit) for each config_id and each databatch per config_id
-        #if nit_values.count(nit_values[0]) != len(nit_values):
-            #print("INFO: Multiple number of total iterations found. Maximum of those values will be chosen.")
         max_nit_values[value] = np.max(nit_values)
     return mean_fun_values,max_nit_values
 
@@ -441,7 +445,7 @@ def config_ids_must_be_skipped(data_type,num_data_points,s_rank, value):
         return False
 
 
-def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt, maxiter, data_type, num_data_points, s_rank):
+def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt, maxiter, data_type, num_data_points, s_rank, learning_rate=None):
     '''
         Convergence plot for mean callback values where exactly one parameter of data_type, num_data_points or s_rank is None and thus variable.
         mean_fun_data is a dictionary where the possible values for the variable parameter are the key and each value saved for a key is a list of fun_values
@@ -457,8 +461,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
     stepsize = 10
     if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm', 'diff_evolution']:
         stepsize = 1
-
-    title = f'Convergence plot for {opt}, maxiter = {maxiter}, \n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
+    
     #determine what parameter is variable (i.e. None in argument list) and check that only one parameter is None
     param_names = ['data_type', 'num_data_points', 's_rank']
     params = [data_type, num_data_points, s_rank]
@@ -467,15 +470,34 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
     none_param = param_names[none_indices[0]]
 
+    # Create title: Only add parameters that are not variable (i.e. None) & add learning rate for SGD optimizers if applicable
+    title = f'Convergence plot for {opt_titles[opt]}, maxiter = {maxiter}, '
+    if(opt in ['sgd', 'adam', 'rmsprop'] and learning_rate is not None):
+        title += f'learning rate = {learning_rate},'
+    title += '\n'
+    param_titles = {'data_type': "Data Type", 'num_data_points': "Number of Data Points", 's_rank': "Schmidt Rank"}
+    for i in range(0,3):
+        if i not in none_indices:
+            title += f"{param_titles[param_names[i]]}: {params[i]}"
+            if i < 2:
+                title += ", "
+    
     #colors for each config id
     cmap = matplotlib.colormaps["tab10"]
     plt.figure()
     c = 0 # needed to determine correct color
     for param_value in mean_fun_data.keys():
-        color = cmap(c/len(mean_fun_data))
+        color = cmap(c/4) # divide by 4, since all three parameters can take 4 values and to keep colours consistent even if not all 4 values appear in plot
         label = f"{none_param} = {param_value}"
         y = mean_fun_data[param_value]
-        x = np.append(np.arange(0,(len(y)-1)*stepsize, stepsize), mean_nit_data[param_value])
+        # Genetic Algorithm saves callback function values for all maxiter iterations, instead of only nit iterations
+        # hence max_nit_value = maxiter for Genetic Algorithm
+        if opt == "genetic_algorithm":
+            x = np.arange(0,len(y)*stepsize,stepsize)
+        else:
+            x = np.append(np.arange(0,(len(y)-1)*stepsize, stepsize), mean_nit_data[param_value])
+        if x[-1] < x[-2]:
+            print("achtung: plot problem:", opt, x[-1], x[-2])
         plt.plot(x,y, color=color, label=label)
         c += 1
     plt.ylim(0,1)
@@ -601,7 +623,6 @@ def make_all_convergence_plots_for(optimizers, origin_path,learning_rate=None,sa
     num_data_points_list = ['1', '2', '3', '4']
     s_rank_list = ['1', '2', '3', '4']
     maxiter_list = [100,1000]
-
     
     # convergence plots for variable s_rank, but fixed datatype and num_data_points
     print("Variable S-Rank in progress...")
@@ -613,8 +634,11 @@ def make_all_convergence_plots_for(optimizers, origin_path,learning_rate=None,sa
                 print(f"num_data_points: {num_data_points}")
                 path = save_path+f'maxiter/{maxiter}/datatype/{datatype}/num_data_points/{num_data_points}'
                 for opt in optimizers:
-                    fun_values, nit_values= extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points,None,target_learning_rate=learning_rate) 
-                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, num_data_points, None)
+                    if opt in ['sgd', 'adam', 'rmsprop']:
+                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points, None,target_learning_rate=learning_rate) 
+                    else:
+                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype,num_data_points, None,)
+                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, num_data_points, None, learning_rate)
                     print(f"optimizer: {opt} done")
 
     # convergence plots for variable num_data_points, but fixed datatype and s_rank
@@ -630,8 +654,11 @@ def make_all_convergence_plots_for(optimizers, origin_path,learning_rate=None,sa
                 print(f"s-rank: {s_rank}")
                 path = save_path+f'maxiter/{maxiter}/datatype/{datatype}/s_rank/{s_rank}'
                 for opt in optimizers:
-                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank,target_learning_rate=learning_rate) 
-                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, None, s_rank)
+                    if opt in ['sgd', 'adam', 'rmsprop']:
+                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank,target_learning_rate=learning_rate) 
+                    else:
+                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank)
+                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, None, s_rank, learning_rate)
                     print(f"optimizer: {opt} done")  
 
     # convergence plots for variabel datatype, but fixed num_data_points and s_rank
@@ -644,8 +671,11 @@ def make_all_convergence_plots_for(optimizers, origin_path,learning_rate=None,sa
                 print(f"num_data_points: {num_data_points}")
                 path = save_path+f'maxiter/{maxiter}/s_rank/{s_rank}/num_data_points/{num_data_points}'
                 for opt in optimizers:
-                    fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points,s_rank,target_learning_rate=learning_rate) 
-                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, None, num_data_points, s_rank)
+                    if opt in ['sgd', 'adam', 'rmsprop']:
+                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points, s_rank,target_learning_rate=learning_rate) 
+                    else:
+                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points, s_rank)
+                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, None, num_data_points, s_rank, learning_rate)
                     print(f"optimizer: {opt} done")
 
 def make_all_convergence_plots():
@@ -656,6 +686,7 @@ def make_all_convergence_plots():
         Example file path for a plot with maximum 1000 iterations, datatype=random and num_data_points=1:
         qnn-experiments/plots/convergence_plots/maxiter/1000/datatype/random/num_data_points/
     '''
+    learning_rate = 0.01
 
     optimizers1 = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
     optimizers2 = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
@@ -666,18 +697,13 @@ def make_all_convergence_plots():
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
 
-    make_all_convergence_plots_for(optimizers1, origin_path1)
-    make_all_convergence_plots_for(optimizers2, origin_path2)
+    make_all_convergence_plots_for(optimizers1, origin_path1,learning_rate=learning_rate)
+    #make_all_convergence_plots_for(optimizers2, origin_path2)
 
     print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
 
 
 if __name__ == "__main__":
     
-    learning_rate = 0.01
-    optimizers = ["sgd", "adam", "rmsprop"]
-    origin_path = 'experimental_results/results/optimizer_results/experiment_part1'
-    save_path = f'qnn-experiments/plots/convergence_plots/SGD_learning_rate_{learning_rate}/'
-
-    make_all_convergence_plots_for(optimizers, origin_path,learning_rate=0.01,save_path=save_path)
+    make_all_convergence_plots()
     
