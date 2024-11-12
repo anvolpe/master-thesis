@@ -25,6 +25,9 @@ import torch
 from scipy.optimize import minimize
 import time
 
+
+# LÖSCHEN??
+
 class QNN_Experiment:
     num_layers = 1
     num_qubits = 2

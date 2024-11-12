@@ -3,6 +3,8 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
+#LÖSCHEN?
+
 def load_json_files(directory):
     data = []
     for filename in os.listdir(directory):

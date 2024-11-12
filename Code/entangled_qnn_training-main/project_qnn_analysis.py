@@ -241,6 +241,7 @@ def extract_optimizer_data(json_data,use_nits=True):
 
 def boxplot_fun_values_per_optimizers(data, opt):
     '''
+        DEPRECATED: use create_hyperparameter_boxplots from project_qnn_hyperparameter_analysis instead
         Only works if iterations are 100, 500 and 1000
     '''
     save_path = 'qnn-experiments/experimental_results/results/box_plots/'
@@ -451,7 +452,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         os.makedirs(save_path)
 
     # Stepsize: Stepsize between Iterations whose fun value is saved in callback (influences x-axis of plot)
-    # for Powell, BFGS and Dual Annealing: stepsize = 1 (every iteration)
+    # for Powell, BFGS, Dual Annealing, GA, PSO and DE: stepsize = 1 (every iteration)
     # for all other optimizers: stepsize = 10 (every 10th iteration)
     stepsize = 10
     if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm', 'diff_evolution']:
@@ -467,7 +468,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
     none_param = param_names[none_indices[0]]
 
     #colors for each config id
-    cmap = matplotlib.colormaps["coolwarm"]
+    cmap = matplotlib.colormaps["tab10"]
     plt.figure()
     c = 0 # needed to determine correct color
     for param_value in mean_fun_data.keys():
@@ -571,7 +572,7 @@ def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_r
                 plt.plot(x,y, color=color, label=label)
             else:
                 plt.plot(x,y, color=color)
-    plt.xlabel('Iterations')
+    plt.xlabel('Iteration')
     plt.ylabel('Function value')
     plt.legend()
     plt.title(title)
