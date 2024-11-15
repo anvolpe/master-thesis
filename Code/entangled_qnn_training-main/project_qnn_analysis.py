@@ -152,16 +152,26 @@ def extract_solution_x_data(json_data):
 
 def create_min_max_boxplots(res_min, res_max, save_path):
     bounds = {"bounds_0": "No Bounds", "bounds_1": r"$[0, 2\pi]$", "bounds_2": r"$[0, 4\pi]$", "bounds_3": r"$[-2\pi, 2\pi]$", "bounds_4": r"$[-4\pi, 4\pi]$"}
+    bounds_limits = {"bounds_1": [0, 2*np.pi], "bounds_2": [0, 4*np.pi], "bounds_3": [-2*np.pi, 2*np.pi], "bounds_4": [-4*np.pi, 4*np.pi]}
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
     for bounds_id in bounds.keys():
         plt.figure(figsize=(10,10))
+        # plot vertical red lines of bounds, for "no bounds" plot [0, 2*pi]
+        if(bounds_id in bounds_limits.keys()):
+            interval = bounds_limits[bounds_id]
+            for x in interval:
+                plt.axvline(x,c="r")
+        else:
+            interval = bounds_limits["bounds_1"]
+            for x in interval:
+                plt.axvline(x,c="r")
         data_min = res_min[bounds_id]
         data_max = res_max[bounds_id]
         x = np.array([(i+1)*1000 for i in range(len(data_min.keys()))])
-        plt.boxplot(data_min.values(), sym="", vert=False,positions=x-200,widths=200)
-        plt.boxplot(data_max.values(), sym="", vert=False,positions=x+200,widths=200)
+        plt.boxplot(data_min.values(), sym="", vert=False,positions=x-100,widths=200)
+        plt.boxplot(data_max.values(), sym="", vert=False,positions=x+100,widths=200)
         plt.yticks(ticks=x,labels=data_min.keys())
         plt.ylabel('Optimizer')
         plt.xlabel('Minimal (lower) and maximal (upper) x-values')
@@ -704,6 +714,10 @@ def make_all_convergence_plots():
 
 
 if __name__ == "__main__":
-    
-    make_all_convergence_plots()
+    directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
+    save_path = f'qnn-experiments/plots/box_plots/bounds'
+
+    json_data = load_json_files(directory)
+    res_min, res_max, res_min_max = extract_solution_x_data(json_data)
+    create_min_max_boxplots(res_min, res_max, save_path)
     

@@ -38,8 +38,62 @@ hyperparameters_per_opt = {"genetic_algorithm": ["maxiter", "crossover_type", "s
                                 "dual_annealing": ["maxiter"]
                                 }
 
+hyperparameters_per_opt_prelim = {"genetic_algorithm": ["crossover_type", "parent_selection_type", "mutation_type"], 
+                                "particle_swarm": ["maxiter", "ftol", "n_particles", "c1_c2", "w"],
+                                "diff_evolution": ["maxiter", "popsize", "recombination"]
+                                }
 
-def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
+opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD', 
+              'adam':'Adam', 'rmsprop':'RMSprop', 'bfgs':'BFGS','slsqp':'SLSQP',
+              'dual_annealing':'Dual Annealing','cobyla':'COBYLA',
+              'genetic_algorithm':'Genetic Algorithm', 'particle_swarm': 'Particle Swarm Optimization',
+              'diff_evolution':'Differential Evolution'}
+
+def load_fun_nit_per_bounds_data(opt, prelim=False):
+    '''
+        For a specific optimizer {opt}: Creates one dictionary that contains a list of achieved function values after optimization
+        per interval for the hyperparameter bounds and another dictionary with number of iterations needed.
+        Data source: "experimental_results/results/optimizer_results/bounds_2024-07-29"
+    '''
+    fun_per_bounds = {}
+    nit_per_bounds = {}
+    #load json data
+    directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
+    data = load_json_files(directory)
+    bounds_values = {"bounds_0": "none", "bounds_1": "$[0,2\pi]$", "bounds_2": "$[0,4\pi]$", "bounds_3": "$[-2\pi, 2\pi]$", "bounds_4": "$[-4\pi, 4\pi]$"}
+
+    #choose correct dictionary key names in json file for a specific optimizer
+    fun_key_name = "fun"
+    nit_key_name = "nit"
+
+
+    if opt == "cobyla":
+        nit_key_name = "nfev"
+
+    for i in range(len(data)):
+        conf_id = data[i]["conf_id"]
+        if conf_id in conf_ids_to_skip:
+            continue
+        for databatch_id in databatches:
+            for bounds_id in bounds_values.keys():
+                try:
+                    dict = data[i][databatch_id][bounds_id][opt]
+                    bounds_value = bounds_values[bounds_id]
+                    if bounds_value not in fun_per_bounds:
+                        fun_per_bounds[bounds_value] = []
+                    if bounds_value not in nit_per_bounds:
+                        nit_per_bounds[bounds_value] = []
+
+                    for j in range(0,len(dict)-1):
+                        #append fun and nit value to correct list in result dictionaries
+                        fun_per_bounds[bounds_value].append(float(dict[str(j)][fun_key_name]))
+                        nit_per_bounds[bounds_value].append(int(dict[str(j)][nit_key_name]))
+                except KeyError as e:
+                    print(f"Fehler beim Lesen der Daten: {e}")
+    return fun_per_bounds, nit_per_bounds
+
+
+def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter, prelim=False):
     '''
         For a specific optimizer {opt}: Creates one dictionary that contains a list of achieved function values after optimization
         per value for a hyperparameter and another dictionary with numer of iterations needed.
@@ -53,6 +107,9 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
     fun_key_name = "fun"
     nit_key_name = "nit"
 
+    if prelim==True and opt == "genetic_algorithm":
+        nit_key_name = "ngeneration/max_iter"
+        
     if opt == "cobyla":
         nit_key_name = "nfev"
 
@@ -80,7 +137,7 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter):
                 print(f"Fehler beim Lesen der Daten: {e}")
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
 
-def load_fun_nit_for_c1_c2_PSO(data):
+def load_fun_nit_for_c1_c2_PSO(data, prelim=False):
     '''
         c1 and c2 values are saved separately in the generated json file, however they need to be analysed together.
         
@@ -94,6 +151,9 @@ def load_fun_nit_for_c1_c2_PSO(data):
     #choose correct dictionary key names in json file for a specific optimizer
     fun_key_name = "fun"
     nit_key_name = "nit"
+
+    if prelim==True and opt == "genetic_algorithm":
+        nit_key_name = "ngeneration/max_iter"
 
     for i in range(len(data)):
         conf_id = data[i]["conf_id"]
@@ -119,7 +179,7 @@ def load_fun_nit_for_c1_c2_PSO(data):
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
 
 
-def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
+def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=False):
     # create path if it does not exist 
     os.makedirs(path, exist_ok=True)
     # replace "iterations" with "generations" in plots if opt is genetic algorithm
@@ -132,9 +192,11 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
     for par in hyperparameters:
         #c1,c2 need to be analysed separately
         if par == "c1_c2":
-            fun_dict, nit_dict = load_fun_nit_for_c1_c2_PSO(json_data)
+            fun_dict, nit_dict = load_fun_nit_for_c1_c2_PSO(json_data, prelim=prelim)
+        elif par == "bounds":
+            fun_dict, nit_dict = load_fun_nit_per_bounds_data(opt, prelim=prelim)
         else:
-            fun_dict, nit_dict = load_fun_nit_per_hyperparameter_data(json_data,opt,par)
+            fun_dict, nit_dict = load_fun_nit_per_hyperparameter_data(json_data,opt,par, prelim=prelim)
 
         # Boxplot for function values
         file_path = os.path.join(path, f'{opt}_boxplot_fun_{par}.png')
@@ -143,7 +205,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
         plt.xticks(range(1, len(fun_dict.keys()) + 1), fun_dict.keys())
         plt.xlabel(par)
         plt.ylabel('Function value')
-        plt.title(f"Achieved loss function values per values of \n {par} for {opt}")
+        plt.title(f"Achieved loss function values per values of \n {par} for {opt_titles[opt]}")
         plt.grid(True)
         plt.savefig(file_path)
         plt.close()
@@ -155,7 +217,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters):
         plt.xticks(range(1, len(nit_dict.keys()) + 1), nit_dict.keys())
         plt.xlabel(par)
         plt.ylabel(f'Number of {nit_name}')
-        plt.title(f"Number of {nit_name} per values of \n {par} for {opt}")
+        plt.title(f"Number of {nit_name} per values of \n {par} for {opt_titles[opt]}")
         plt.grid(True)
         plt.savefig(file_path)
         plt.close()
@@ -232,8 +294,14 @@ def create_all_hyperparameter_boxplots():
 if __name__ == "__main__":
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
+    opt_list = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
+    directory = "experimental_results/results/optimizer_results/hyperparameter_tests_2024-10-26"
+    json_data = load_json_files(directory) 
 
-    create_all_hyperparameter_boxplots()
+    for opt in opt_list:
+        save_path = f'qnn-experiments/plots/box_plots/preliminary_test/hyperparameters_GA_DE_PSO/{opt}'
+        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt_prelim[opt], prelim=True)
+        print(f"{opt} done")
 
     end = time.time()
     print(f"end time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))}")
