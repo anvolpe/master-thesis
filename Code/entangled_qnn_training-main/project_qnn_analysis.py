@@ -3,6 +3,9 @@ import gc
 import json
 import time
 from datetime import datetime
+
+import matplotlib.patches
+import matplotlib.patches
 from qnns.cuda_qnn import CudaPennylane
 import re
 
@@ -312,6 +315,25 @@ def get_conf_ids(data_type, num_data_points, s_rank,every_fifth_config=False):
         except json.JSONDecodeError:
             print(f"Fehler beim Laden der Datei: {file_path}")
     return(conf_id_list)
+
+def get_conf_ids_forParam(distinctionParam, paramValue):
+    '''adds all configs that match with a specified parameter Value for all other parameters staying unspecified
+        -->data_type, num_data_points, s_rank
+    '''
+    
+    data = []
+    conf_id_list = []
+    file_path = "Code/entangled_qnn_training-main/data/configDict.json"
+    with open(file_path, 'r') as file:
+        try:
+            data = json.load(file)
+            for i in range(len(data)):
+                if(data[str(i)][distinctionParam]==paramValue):
+                    conf_id_list.append(i)
+        except json.JSONDecodeError:
+            print(f"Fehler beim Laden der Datei: {file_path}")
+    return(conf_id_list)
+
 
 def load_json_data(directory, conf_id_list):
     '''
@@ -712,12 +734,219 @@ def make_all_convergence_plots():
 
     print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
 
+def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased,xAxisName,iterList):
+    #data_GradFree={1:[0.2,0.8],2:[0.2,0.8],3:[0.2,0.8],4:[0.2,0.8]} 
+    #data_GradBased={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
+    #data_EVO={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
+    if not os.path.exists(boxplot_save_path):
+        os.makedirs(boxplot_save_path)
+
+    
+    fig, ax = plt.subplots(figsize=(10, 6))   
+    #plt.figure()
+    
+    labels=list(data_GradFree.keys())
+    if(xAxisName=='maxiter'):
+        x = [1,2]
+        positions1=[0.80, 1.80]
+        positions2=[1.20, 2.20]
+        widths=[0.25,0.25]
+    else:
+        positions1=[0.80, 2.10,    3.40, 4.70]
+        positions2=[1.20, 2.50, 3.80, 5.10]
+        positions3=[1.60, 2.90, 4.20,5.50]
+        widths=[0.25,0.25,0.25,0.25]
+        x=positions2
+
+    valuesGradFree = [data_GradFree[key] for key in data_GradFree.keys()]
+    values_EVO = [data_EVO[key] for key in data_EVO.keys()]
+    valuesGradBased = [data_GradBased[key] for key in data_GradBased.keys()]
+
+    print(len(valuesGradFree))
+    print(":::::::::::::::::::::::::::")
+    print(len(valuesGradBased))
+    
+
+    bp1=plt.boxplot(valuesGradFree,positions=positions1, patch_artist=True, boxprops=dict(facecolor='darkseagreen',hatch='oo'), manage_ticks=True ,widths=widths )
+    bp2=plt.boxplot(values_EVO,positions=positions2, patch_artist=True, boxprops=dict(facecolor='green',hatch='xx'), manage_ticks=True ,widths=widths)
+    bp3=plt.boxplot(valuesGradBased,positions=positions3, patch_artist=True, boxprops=dict(facecolor='skyblue',hatch='//'), manage_ticks=True ,widths=widths)
+    bps=[bp1,bp2,bp3]
+    
+    plt.xticks(ticks=x, labels=iterList)
+    dg_patch = matplotlib.patches.Patch(facecolor='darkseagreen',hatch='o', label='Gradient Free')
+    green_patch =matplotlib.patches.Patch(facecolor='green',hatch='x', label='Evolutional')
+
+    blue_patch = matplotlib.patches.Patch(facecolor='skyblue',hatch=r'//', label='Gradient Based')
+    leg=plt.legend(handles=[dg_patch,green_patch,blue_patch], labelspacing=1, handlelength=3) 
+
+    for patch in leg.get_patches():
+        patch.set_height(15)
+        patch.set_y(-2)
+        
+    #ax.set_xticklabels(labels)
+    plt.xlabel(xAxisName)
+    plt.ylabel('Function Value (fun)')
+    plt.title(title)
+    #plt.xticks(rotation=90)
+    plt.grid(True)
+    plt.tight_layout()
+    file_path = os.path.join(boxplot_save_path, title+'_bps.png')
+    fig.savefig(file_path)
+    '''
+    num=1
+    outdict={}
+    for bp in bps:
+        print(num)
+        whisker_ends = [item.get_ydata()[1] for item in bp['whiskers']]
+        medians = [item.get_ydata()[1] for item in bp['medians']]
+        #boxes = [item.get_ydata()[1] for item in bp['boxes']]
+        #fliers = [item.get_ydata() for item in bp['fliers']]
+        print("Whisker ends:", whisker_ends)
+        print("Medians:", medians)
+        outdict[num]=medians
+        num +=1
+    print(outdict)
+    print("Fliers:", fliers)
+    '''
+
+    plt.close()
+
+def extract_func_data(directory, conf_id_list,every_fifth_config=False,target_learning_rate=None):
+    '''
+        For each entry in json_data (each configuration) extract list of 
+        gradientfree and gradientbased optimizers reached final functional values for specified conf_id list
+   
+    '''
+    # Determine key names for maxiter (TODO: change back if changed during final experiment)
+    maxiter_name = "maxiter"
+    nit_name = "nit"
+
+    gradient_free_original = ["nelder_mead", "powell", "cobyla", "dual_annealing"]
+    gradient_free_evolutional = ["genetic_algorithm", "particle_swarm", "diff_evolution"]
+
+#   wihout SGD!
+    gradient_based = ["adam", "rmsprop", "bfgs","slsqp"]
+    
+
+
+   # for each list in conf_id_list (i.e. each possible value of non-specified parameter) (and each databatch): determine a list of mean callback values
+    fun_values_grad = []
+    fun_values_gradfree_og = []
+    fun_values_gradfree_evolutional = []
+    print(conf_id_list)
+    
+    all_data = load_json_data(directory, conf_id_list)
+    fun_values = []
+    #if(config_ids_must_be_skipped(data_type,num_data_points,s_rank,value)):
+    #    continue
+    for id in conf_id_list:
+        if id not in conf_ids_to_skip:
+            for entry in all_data[id]:
+                if isinstance(entry, dict):
+                    # go through each databatch
+                    for batch_key in entry:
+                        if batch_key.startswith("databatch_"):
+                            for opt in gradient_free_original:
+                                if opt in entry[batch_key]:
+                                    # get data for optimizer opt
+                                    batch_data = entry[batch_key][opt]
+                                    for key in batch_data:
+                                        data = batch_data[key]
+                                        
+                                        # data must be dictionary and contain keys
+                                        if isinstance(data, dict):
+                                            fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
+                                            fun_converted=float(fun)
+                                            fun_values_gradfree_og.append(fun_converted)
+
+                            for opt in gradient_free_evolutional:
+                                if opt in entry[batch_key]:
+                                    # get data for optimizer opt
+                                    batch_data = entry[batch_key][opt]
+                                    for key in batch_data:
+                                        data = batch_data[key]
+                                        
+                                        # data must be dictionary and contain keys
+                                        if isinstance(data, dict):
+                                            fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
+                                            fun_converted=float(fun)
+                                            fun_values_gradfree_evolutional.append(fun_converted)
+
+                            for opt in gradient_based:
+                                if opt in entry[batch_key]:
+                                    # get data for optimizer opt
+                                    
+
+                                    batch_data = entry[batch_key][opt]
+                                    for key in batch_data:
+                                        data = batch_data[key]
+                                            
+                                        # data must be dictionary and contain keys
+                                        if isinstance(data, dict):
+                                            fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
+                                            fun_converted=float(fun)
+                                            if opt in ["sgd", "adam", "slsqp"]:
+                                                if data.get("learning_rate", None)==0.01:
+                                                    fun_values_grad.append(fun_converted) 
+                                            else:
+                                                fun_values_grad.append(fun_converted) 
+
+    return fun_values_gradfree_og, fun_values_gradfree_evolutional, fun_values_grad
+    
+def makeCategoryBoxplots(xAxisName):
+    '''
+    Making boxplots for given datatype, 
+    '''
+    if(xAxisName=='data_type'):
+        iterList = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
+    elif(xAxisName=='num_data_points'):
+        iterList = ['1', '2', '3', '4']
+    elif(xAxisName=='s_rank'):
+        iterList = ['1', '2', '3', '4']
+    #elif(xAxisName=='maxiter'):
+    #    iterList = [100,1000]
+
+    print("process all...")
+    #for maxiter in maxiter_list:
+    #    print(f"maxiter: {maxiter}")
+    #    path = save_path+'maxiter'
+    
+    origin_path = 'experimental_results/results/optimizer_results/experiment_part1'
+    origin_path_2nd = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
+    save_path='qnn-experiments/plots/categoryplots/New/'
+    r_rankDict_grad={}
+    r_rankDict_gradFree={}
+    r_rankDict_gradFree_EVO={}
+
+    count=1
+    for iter in iterList:
+        print(f"s_rank: {iter}")
+        #path = save_path+'s_rank'
+        #seperate handeling for maxiteration
+        confIdList=get_conf_ids_forParam(xAxisName, iter)
+        gradFreeList, gradFreeEvoList, gradBasedList=extract_func_data(origin_path,confIdList)
+        gradFreeList_2nd,gradFreeEvoList_2nd, gradBasedList2nd=extract_func_data(origin_path_2nd,confIdList)
+
+        print(gradFreeEvoList)        
+        for entryTemp in gradFreeList_2nd:
+            gradFreeList.append(entryTemp)
+        #for entryTemp in gradFreeList_2nd: 
+        #    gradBasedList.append(gradBasedList2nd)
+
+        r_rankDict_gradFree[count]=gradFreeList
+        r_rankDict_gradFree_EVO[count]=gradFreeEvoList_2nd
+        r_rankDict_grad[count]=gradBasedList
+        count=count+1
+    plot_boxplots( save_path,xAxisName+'_withoutSGD', data_GradFree=r_rankDict_gradFree, data_EVO=r_rankDict_gradFree_EVO, data_GradBased=r_rankDict_grad, xAxisName=xAxisName,iterList=iterList)
+
 
 if __name__ == "__main__":
     directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
     save_path = f'qnn-experiments/plots/box_plots/bounds'
 
-    json_data = load_json_files(directory)
-    res_min, res_max, res_min_max = extract_solution_x_data(json_data)
-    create_min_max_boxplots(res_min, res_max, save_path)
+    #json_data = load_json_files(directory)
+    #res_min, res_max, res_min_max = extract_solution_x_data(json_data)
+    #create_min_max_boxplots(res_min, res_max, save_path)
+    
+    makeCategoryBoxplots('s_rank')
     
