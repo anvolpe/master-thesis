@@ -5,7 +5,6 @@ import time
 from datetime import datetime
 
 import matplotlib.patches
-import matplotlib.patches
 from qnns.cuda_qnn import CudaPennylane
 import re
 
@@ -32,23 +31,421 @@ opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD',
               'genetic_algorithm':'Genetic Algorithm', 'particle_swarm': 'Particle Swarm Optimization',
               'diff_evolution':'Differential Evolution'}
 
-# TODO: in eine funktion mit der andere load_jason... packen
-def load_json_files(directory):
-    data = []
-    for filename in os.listdir(directory):
-        if filename.endswith('.json'):
-            file_path = os.path.join(directory, filename)
-            #print(f"Lade Datei: {file_path}")
-            with open(file_path, 'r') as file:
-                try:
-                    json_data = json.load(file)
-                    data.append(json_data)
-                except json.JSONDecodeError:
-                    print(f"Fehler beim Laden der Datei: {file_path}")
-    if not data:
-        print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
-    return data
+datatype_list = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
+num_data_points_list = ['1', '2', '3', '4']
+s_rank_list = ['1', '2', '3', '4']
+maxiter_list = [1000]
 
+mean_fun_values = pd.DataFrame(columns=["data_type", "s_rank", "num_data_points"]+list(opt_titles.keys()))
+
+mean_fun_values_per_config = {opt:[] for opt in opt_titles.keys()}
+mean_nit_values_per_config = {opt:[] for opt in opt_titles.keys()}
+max_nit_values_per_config = {opt:[] for opt in opt_titles.keys()} # needed to plot correct convergence plots
+mean_callback_values_per_config = {opt:{} for opt in opt_titles.keys()}
+
+########## Data Preparation ##########
+def extract_all_data_from_json_files():
+    '''
+        Extracts mean function and iteration values and callback values for all optimizers in final experiment.
+        Prerequisite for most further analysis functions, such as convergence plots and boxplots.
+    '''
+    optimizers1 = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
+    optimizers2 = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
+
+    #filename = os.path.join(os.getcwd(), 'TrainLabel1.csv')
+    origin_path1 = os.path.join(os.getcwd(),'experimental_results/results/optimizer_results/experiment_part1')
+    origin_path2 = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
+    calc_mean_fun_nit_callback_values_per_config(optimizers1,origin_path1)
+    calc_mean_fun_nit_callback_values_per_config(optimizers2,origin_path2)
+
+def calc_mean_fun_nit_callback_values_per_config(opt_list, directory, max_iter=1000):
+    '''
+        Reads json-files from directory and computes mean function values for all optimizers in opt_list, mean number of iterations
+        mean callback-values (function value history) and corresponding number of iterations (for plotting callback values in convergence plots) for each config ID. 
+        Default: maximum number of itertations is 1000. 
+
+        Fills the following dictionaries with values:
+            mean_fun_values_per_config: keys are optimizers, values are a list (320 entries, one per config_id) 
+            mean_nit_values_per_config: keys are optimizers, values are a list (320 entries, one per config_id) 
+            max_nit_values_per_config: keys are optimizers, values are a list (320 entries, one per config_id)
+            mean_callback_values_per_config: dictionary of dictionaries. Key on level 1: optimizers, 
+                Key on level 2: config_id (integer), values: list (callback values)
+    '''
+
+    all_data = load_json_data(directory)
+    # for each list in conf_id_list (i.e. each possible value of non-specified parameter) (and each databatch): determine a list of mean callback values
+    for id in range(0,len(all_data)):
+        for opt in opt_list:
+            # Stepsize: Stepsize between Iterations whose fun value is saved in callback
+            # for Powell, BFGS, Dual Annealing, GA and PSO: stepsize = 1 (every iteration)
+            # for all other optimizers: stepsize = 10 (every 10th iteration)
+            stepsize = 10
+            if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm']:
+                stepsize = 1
+            target_learning_rate = None
+            if opt in ["sgd", "adam", "rmsprop"]:
+                target_learning_rate = 0.01
+            # Determine key names for maxiter
+            # exceptions: Cobyla counts function evaluations instead of iterations
+            maxiter_name = "maxiter"
+            nit_name = "nit"
+            fun_values = []
+            nit_values = []
+            callback_values = []
+            for entry in all_data[id]:
+                if isinstance(entry, dict):
+                    # go through each databatch
+                    for batch_key in entry:
+                        if batch_key.startswith("databatch_"):
+                            if opt in entry[batch_key]:
+                                # get data for optimizer opt
+                                batch_data = entry[batch_key][opt]
+                                for key in batch_data:
+                                    data = batch_data[key]            
+                                    # data must be dictionary and contain keys
+                                    if isinstance(data, dict):
+                                        nit = data.get(nit_name, None) # nit: number of total iterations needed to reach optimal fun-value
+                                        fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
+                                        iter = data.get(maxiter_name, None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
+                                        callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
+                                        learning_rate = data.get("learning_rate", None) # for SGD optimizers: learning rate. Used to filter for specific learning rate. If optimizer does not use learning_rate it is None
+                                        if(iter == max_iter and learning_rate == target_learning_rate): # if target_learning_rate is not specified, it is None
+                                            if nit is None or opt == 'dual_annealing': #cobyla doesn't save nit and dual_annealing saves the wrong value (max_iter) for nit
+                                                nit = (len(callback)-1)*stepsize
+                                            if nit is not None and fun is not None:
+                                                try:
+                                                    nit_values.append(int(nit))
+                                                    fun_values.append(float(fun))
+                                                    if(callback[-1] != fun): # append optimal fun value, if it isn't already the last value in callback-list
+                                                            callback.append(float(fun))
+                                                    callback_values.append(callback) 
+                                                except ValueError as e:
+                                                    print(f"Fehler beim Konvertieren der Daten: {e}")
+                                            else:
+                                                print(f"Fehlende Schlüssel in den Daten: {data}")
+                            else:
+                                print(f"Optimierer {opt} nicht in den Datenbatch {batch_key} gefunden")
+                else:
+                    print("Eintrag ist kein Dictionary")
+            mean_fun_values_per_config[opt].append(np.mean(fun_values))
+            mean_nit_values_per_config[opt].append(np.mean(nit_values))
+            # compute mean of callback fun values over each config_id and each databatch per config_id
+            # for runs that used less iterations than others: fill those lists with the optimal fun value achieved
+            max_len = len(max(callback_values, key=len))
+            # pad right of each sublist of fun_values with optimal fun value to make it as long as the longest sublist
+            for sublist in callback_values:
+                opt_fun_val = sublist[-1]
+                sublist[:] = sublist + [opt_fun_val] * (max_len - len(sublist))
+            fun_arrays = [np.array(x) for x in callback_values]
+            mean_callback_values_per_config[opt][id] = [np.mean(k) for k in zip(*fun_arrays)]
+            # compute maximum of total number of iterations (nit) for each config_id and each databatch per config_id
+            max_nit_values_per_config[opt].append(np.max(nit_values))
+    del all_data
+
+########## Further Info for Convergence Plots ##########
+def fill_mean_fun_values():
+    '''
+        Computes mean function values per attribute combination (datatype, num_data_points, s_rank) of a config for each optimizer.
+        Values are saved in mean_fun_values (dataframe) and 
+        exported to 'qnn-experiments/plots/convergence_plots/maxiter/1000/mean_fun_values.csv'.
+
+        Prerequisite:
+            mean_fun_values_per_config is filled.
+    '''
+    if len(mean_fun_values_per_config)==0:
+        raise Exception("Data has not been extracted from json files. Execute extract_all_data_from_json_files() and try again.")
+
+    print("fill mean_fun_values")
+    #prep mean_fun_values (dataframe)
+    for datatype in datatype_list:
+        for s_rank in s_rank_list:
+            for num_data_points in num_data_points_list:
+                row = [datatype, num_data_points, s_rank]
+                if(row in combinations_to_skip):
+                    continue
+                index = ['data_type', 'num_data_points', 's_rank']
+                conf_ids = get_conf_ids(datatype,num_data_points, s_rank)
+                for opt in opt_titles.keys():
+                    mean_fun = np.mean([mean_fun_values_per_config[opt][i] for i in conf_ids])
+                    row.append(mean_fun)
+                    index.append(opt)
+                s = pd.Series(data=row,index=index)
+                mean_fun_values.loc[len(mean_fun_values)] = s
+    mean_fun_values.set_index(["data_type", "s_rank", "num_data_points"], inplace=True)
+    mean_fun_values.to_csv('qnn-experiments/plots/convergence_plots/maxiter/1000/mean_fun_values.csv', index=True)
+
+    return mean_fun_values
+
+def order_of_parameter_values(datatype, num_data_points, s_rank, save_path):
+    '''
+        Calculates the order of the variable parameter values (None-parameter) for each optimizer from best (lowest) to worst (highest)
+        according to achieved optimal function value
+        Two of datatype, num_data_points and s_rank are fixed and one is variable (i.e. None)
+
+        Result is saved in save_path+"order_paramvalue_per_opt_{datatype}{num_data_points}{s_rank}.csv"
+
+        Prerequisite:
+            mean_fun_values is not empty
+    '''
+    # create correct directory if it doesn't exist
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    if len(mean_fun_values)==0:
+        raise Exception("Data has not been extracted from json files. Execute extract_all_data_from_json_files() and try again.")
+    
+    # check that only one parameter (data_type, num_data_points, s_rank) is None:
+    param_names = ['data_type', 'num_data_points', 's_rank']
+    params = [datatype, num_data_points, s_rank]
+    not_none_indices = [i for i in range(len(params)) if params[i] != None]
+    if(len(not_none_indices) != 2):
+        raise Exception('Exactly one parameter of data_type, num_data_points and s_rank must be None')
+    
+    # determine the non-variable parameters
+    param0 = param_names[not_none_indices[0]]
+    param1 = param_names[not_none_indices[1]]
+    m0 = (mean_fun_values.index.get_level_values(param0) == params[not_none_indices[0]])
+    m1 = (mean_fun_values.index.get_level_values(param1) == params[not_none_indices[1]])
+    df = mean_fun_values[m0 & m1]
+
+    # determine variable parameter
+    none_index = [i for i in range(len(params)) if params[i] == None]
+    var_param = param_names[none_index[0]]
+
+    df1 = (df.reset_index().drop([param0, param1], axis=1).set_index([var_param])
+           .apply(lambda x: x.index[x.argsort()])
+           .reset_index(drop=True)
+           )
+
+    df1.to_csv(save_path+f"order_paramvalue_per_opt_{datatype}{num_data_points}{s_rank}.csv")
+    return df1
+
+def best_opt_per_param_combination(save_path):
+    '''
+        saves the order of optimizers for each parameter combination (datatype, num_data_points, s_rank) from best to worst
+        and the achieved mean optimal function value.
+        Result is saved as a txt-file in save_path
+
+        Prerequisite:
+            mean_fun_values is not empty
+    '''
+    if len(mean_fun_values)==0:
+        raise Exception("Data has not been extracted from json files. Execute extract_all_data_from_json_files() and try again.")
+
+    #determine order of optimizers
+    df1 = (mean_fun_values[list(opt_titles.keys())]
+           .apply(lambda x: x.sort_values().index.tolist(), axis=1, result_type='expand')
+           .pipe(lambda x: x.set_axis(x.columns+1, axis=1))
+           .reset_index()
+          )
+    df1.to_csv(save_path+"best_opt_per_param_combination.csv")
+
+    #determine median and standard deviation (and other characteristics) of achieved values 
+    df2 = (mean_fun_values[list(opt_titles.keys())]
+           .astype(float)
+           .transpose()
+           .describe(include='all')
+           .transpose()
+           .reset_index()
+           )
+    df2.to_csv(save_path+"best_opt_per_param_combination_mean_std.csv")
+
+    return df1, df2
+                         
+def compute_deltas(datatype, num_data_points, s_rank, save_path):
+    '''
+        Calculates the achieved function values and the difference between each achieved function value for each value of the variable parameter.
+        Two of datatype, num_data_points and s_rank are fixed
+        and one is variable (None)
+
+        Results are saved in csv files:
+            .../mean_fun_values_{datatype}{num_data_points}{s_rank}.csv
+            .../delta_mean_fun_values_{datatype}{num_data_points}{s_rank}.csv
+
+        Prerequisite:
+            mean_fun_values is not empty
+    '''
+    # create correct directory if it doesn't exist
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    if len(mean_fun_values)==0:
+        raise Exception("Data has not been extracted from json files. Execute extract_all_data_from_json_files() and try again.")
+    
+    # check that only one parameter (data_type, num_data_points, s_rank) is None:
+    param_names = ['data_type', 'num_data_points', 's_rank']
+    params = [datatype, num_data_points, s_rank]
+    not_none_indices = [i for i in range(len(params)) if params[i] != None]
+    if(len(not_none_indices) != 2):
+        raise Exception('Exactly one parameter of data_type, num_data_points and s_rank must be None')
+    
+    # determine the non-variable parameters
+    param0 = param_names[not_none_indices[0]]
+    param1 = param_names[not_none_indices[1]]
+    m0 = (mean_fun_values.index.get_level_values(param0) == params[not_none_indices[0]])
+    m1 = (mean_fun_values.index.get_level_values(param1) == params[not_none_indices[1]])
+    df = mean_fun_values[m0 & m1]
+    df_delta = df.diff()
+    df_relative_delta = df.pct_change()
+
+    df.to_csv(save_path+f"/mean_fun_values_{datatype}{num_data_points}{s_rank}.csv")
+    df_delta.to_csv(save_path+f"/delta_mean_fun_values_{datatype}{num_data_points}{s_rank}.csv")
+    df_relative_delta.to_csv(save_path+f"/rel_delta_mean_fun_values_{datatype}{num_data_points}{s_rank}.csv")
+
+    return df, df_delta
+
+def compute_convergence_plot_information():
+    '''
+        Computes information pertaining to the convergence plots, 
+        such as deltas between every achieved function value per variable parameter (datatype, s_rank of num_data_points),
+        average delta per variable parameter (see compute_deltas() for both)
+        optimizer with best results per combination of parameters (see best_opt_per_param_combination())
+        order of parameter values (variable parameter) from best to worst results (for convergence plots where order is not visible in plot) (see order_of_parameter_values())
+
+        Requirement: mean_fun_values is not empty
+
+        Result is saved in a txt file in each convergence plot folder
+    '''
+    # compute deltas
+
+    save_path='qnn-experiments/plots/convergence_plots/maxiter/1000/plot_info/'
+    
+    # create correct directory if it doesn't exist
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    best_opt_per_param_combination(save_path)
+    df_deltas_list = []
+
+    maxiter = 1000
+    for datatype in datatype_list:
+        print(f"datatype: {datatype}")
+        # convergence plot information for variable s_rank, but fixed datatype and num_data_points
+        print("Variable S-Rank in progress...")
+        for num_data_points in num_data_points_list:
+            print(f"num_data_points: {num_data_points}")
+            path = save_path+f'datatype/{datatype}/num_data_points/' 
+            df, df_deltas = compute_deltas(datatype, num_data_points, None, path)
+            df_deltas_list.append(df_deltas)
+            order_of_parameter_values(datatype, num_data_points, None, path)
+    # more info about deltas
+
+    df_deltas_list = []
+    for datatype in datatype_list:       
+        # convergence plot information for variable num_data_points, but fixed datatype and s_rank
+        print("Variable number of data points in progress...")
+        for s_rank in s_rank_list:
+            if(s_rank==3 and datatype=="non_lin_ind"):
+                print("skipping s-rank = 3, datatype = non_lin_ind")
+                continue
+            print(f"s-rank: {s_rank}")
+            path = save_path+f'datatype/{datatype}/s_rank/'
+            compute_deltas(datatype, None, s_rank, path)
+            order_of_parameter_values(datatype, None, s_rank, path)
+
+    df_deltas_list = []  
+    # convergence plot information for variabel datatype, but fixed num_data_points and s_rank
+    print("Variable datatype in progress...")
+    for s_rank in s_rank_list:
+        print(f"s-rank: {s_rank}")
+        for num_data_points in num_data_points_list:
+            print(f"num_data_points: {num_data_points}")
+            path = save_path+f's_rank/{s_rank}/num_data_points/'
+            compute_deltas(None, num_data_points, s_rank, path)
+            order_of_parameter_values(None, num_data_points, s_rank, path)
+
+########## Helper Functions ##########
+
+def get_conf_ids(data_type, num_data_points, s_rank,every_fifth_config=False):
+    '''
+        Returns a list of config ids that correspond to data_type, num_data_points and s_rank.
+        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
+        num_data_points (String): 1,2,3,4
+        s_rank (String): 1,2,3,4
+        every_fifth_config (bool): true, if there are only json files for every fifth config (used for testing purposes). Default: false
+    '''
+    # use to determine which conf_ids should be added to list (every single one or every fifth)
+    mod = 1
+    if(every_fifth_config):
+        mod=5
+    data = []
+    conf_id_list = []
+    file_path = "Code/entangled_qnn_training-main/data/configDict.json"
+    with open(file_path, 'r') as file:
+        try:
+            data = json.load(file)
+            for i in range(len(data)):
+                if(i%mod == 0 and data[str(i)]["data_type"]==data_type and data[str(i)]["num_data_points"]==num_data_points and data[str(i)]["s_rank"]==s_rank):
+                    conf_id_list.append(i)
+        except json.JSONDecodeError:
+            print(f"Fehler beim Laden der Datei: {file_path}")
+    return(conf_id_list)
+
+def get_conf_ids_forParam(distinctionParam, paramValue):
+    '''adds all configs that match with a specified parameter Value for all other parameters staying unspecified
+        -->data_type, num_data_points, s_rank
+    '''
+    
+    data = []
+    conf_id_list = []
+    file_path = "Code/entangled_qnn_training-main/data/configDict.json"
+    with open(file_path, 'r') as file:
+        try:
+            data = json.load(file)
+            for i in range(len(data)):
+                if(data[str(i)][distinctionParam]==paramValue):
+                    conf_id_list.append(i)
+        except json.JSONDecodeError:
+            print(f"Fehler beim Laden der Datei: {file_path}")
+    return(conf_id_list)
+
+def load_json_data(directory, conf_id_list=range(0,320)):
+    '''
+        Load Json-data for each config_id in conf_id_list from files saved in directory.
+        File names start with "conf_{config_id}_" and end with ".json".
+        Default conf_id_list is all configs, i.e. 0 to 319.
+
+        Returns:
+            all_data: dict where keys are ids and values are a list of all json-files loaded as dictionaries.
+    '''
+    all_data = {}
+    for id in conf_id_list:
+        all_data[id] = []
+        for filename in os.listdir(directory):
+            if filename.endswith('.json') and filename.startswith(f'conf_{id}_'):
+                file_path = os.path.join(directory, filename)
+                #print(f"Lade Datei: {file_path}")
+                with open(file_path, 'r') as file:
+                    try:
+                        all_data[id].append(json.load(file))
+                    except json.JSONDecodeError:
+                        print(f"Fehler beim Laden der Datei: {file_path}")
+        if not all_data:
+            print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
+    return all_data
+#???
+def config_ids_must_be_skipped(data_type,num_data_points,s_rank, value):
+    ''' 
+        Returns true if for this combination of data_type, number of data points and s_rank the original configurations were faulty 
+        (i.e. trainingsdata does not have norm 1) TODO: stimmt das???
+        Combinations to be skipped are: data_type = non_lin_ind, s_rank = 3, num_data_points in [2,3,4]
+        One of data_type, num_data_points and s_rank is None and the None-parameter has the specified value.
+        Return:
+            true if this combination of parameters needs to be skipped. False otherwise
+    '''
+    params = [data_type, num_data_points, s_rank]
+    none_indices = [i for i in range(len(params)) if params[i] == None]
+    if(len(none_indices)>1):
+        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
+    params[none_indices[0]] = value
+    if(params in combinations_to_skip):
+        print(params)
+        return True
+    else:
+        return False
+
+########## Boxplots Plots for bounds testing ##########
+#???
 def extract_solution_fun_data(json_data):
     '''
         Extract mean x_min and x_max value for every optimizer for every bound for one config.
@@ -104,15 +501,18 @@ def extract_solution_fun_data(json_data):
 def extract_solution_x_data(json_data):
     '''
         Extract mean x_min and x_max value for every optimizer for every bound for one config.
+        Needed for create_min_max_boxplots
+
+        Returns:
+            res_min (dict): all smallest solution x-values per optimizer and bounds value
+            res_max (dict): all largest solution x-values per optimizer and bounds value
+            res_min_max (dict): the smallest and largest solution x-value per optimizer
     '''
     gradient_free = ["nelder_mead", "powell", "cobyla"]
     gradient_based = ["sgd", "adam", "rmsprop", "bfgs", "dual_annealing","slsqp"]
     optimizers = gradient_based + gradient_free
     bounds_batches = ["bounds_0", "bounds_1", "bounds_2", "bounds_3", "bounds_4"]
     databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
-    optimizer_data = {}
-    #gradient_based_data = []
-    #gradient_free_data = []
 
     # prepare results dict
     # bounds_i : opt_1 : [(x_min1, x_max1), (x_min2, x_max2),...], opt_2 : ...
@@ -128,7 +528,7 @@ def extract_solution_x_data(json_data):
                 for opt in optimizers:
                     print(f"Verarbeite {opt}")
                     try:
-                        dict = json_data[i][databatch_id][bounds_id][opt]["0"]
+                        dict = json_data[i][0][databatch_id][bounds_id][opt]["0"]
                         if opt not in res_min[bounds_id]:
                             res_min[bounds_id][opt] = []
                         if opt not in res_max[bounds_id]:
@@ -154,6 +554,10 @@ def extract_solution_x_data(json_data):
     return res_min, res_max, res_min_max
 
 def create_min_max_boxplots(res_min, res_max, save_path):
+    '''
+        Creates several boxplot where minimal and maximal solution x-values are plotted per optimizer. One plot per bounds value.
+        Save path for plots: savepath+'{bounds_id}_boxplot_no_outliers.png'
+    '''
     bounds = {"bounds_0": "No Bounds", "bounds_1": r"$[0, 2\pi]$", "bounds_2": r"$[0, 4\pi]$", "bounds_3": r"$[-2\pi, 2\pi]$", "bounds_4": r"$[-4\pi, 4\pi]$"}
     bounds_limits = {"bounds_1": [0, 2*np.pi], "bounds_2": [0, 4*np.pi], "bounds_3": [-2*np.pi, 2*np.pi], "bounds_4": [-4*np.pi, 4*np.pi]}
     if not os.path.exists(save_path):
@@ -161,31 +565,35 @@ def create_min_max_boxplots(res_min, res_max, save_path):
 
     for bounds_id in bounds.keys():
         plt.figure(figsize=(10,10))
-        # plot vertical red lines of bounds, for "no bounds" plot [0, 2*pi]
+        # plot vertical grey lines of bounds, for "no bounds" plot [0, 2*pi]
         if(bounds_id in bounds_limits.keys()):
             interval = bounds_limits[bounds_id]
             for x in interval:
-                plt.axvline(x,c="r")
+                plt.axvline(x,c="grey")
         else:
             interval = bounds_limits["bounds_1"]
             for x in interval:
-                plt.axvline(x,c="r")
+                plt.axvline(x,c="grey")
         data_min = res_min[bounds_id]
         data_max = res_max[bounds_id]
         x = np.array([(i+1)*1000 for i in range(len(data_min.keys()))])
-        plt.boxplot(data_min.values(), sym="", vert=False,positions=x-100,widths=200)
-        plt.boxplot(data_max.values(), sym="", vert=False,positions=x+100,widths=200)
+        plt.boxplot(data_min.values(), sym="", patch_artist=True, boxprops=dict(facecolor='darkseagreen',hatch='oo'), vert=False,positions=x-100,widths=200)
+        plt.boxplot(data_max.values(), sym="", patch_artist=True, boxprops=dict(facecolor='skyblue',hatch='//'), vert=False,positions=x+100,widths=200)
+        
+        # legend
+        dg_patch = matplotlib.patches.Patch(facecolor='darkseagreen',hatch='o', label='minimal x values')
+        blue_patch = matplotlib.patches.Patch(facecolor='skyblue',hatch=r'//', label='maximal x values')
+        plt.legend(handles=[dg_patch,blue_patch], labelspacing=1, handlelength=2) 
+
         plt.yticks(ticks=x,labels=data_min.keys())
         plt.ylabel('Optimizer')
         plt.xlabel('Minimal (lower) and maximal (upper) x-values')
         plt.title(f"Minimal and Maximal x-Values for bounds: {bounds[bounds_id]}",fontsize='xx-large')
-        #plt.legend()
-        #plt.ylim(bottom=-0.015,  top=max(fun) + 0.05)
         plt.grid(True)
         file_path = os.path.join(save_path, f'{bounds_id}_boxplot_no_outliers.png')
         plt.savefig(file_path)
         plt.close()
-
+#???
 def extract_optimizer_data(json_data,use_nits=True):
     gradient_based = ["nelder_mead", "powell", "cobyla"]
     gradient_free = ["sgd", "adam", "rmsprop", "bfgs", "dual_annealing", "slsqp"]
@@ -258,224 +666,19 @@ def extract_optimizer_data(json_data,use_nits=True):
     
     return mean_optimizer_data, mean_gradient_based_data, mean_gradient_free_data, optimizer_data
 
-def boxplot_fun_values_per_optimizers(data, opt):
+def make_bounds_boxplots():
     '''
-        DEPRECATED: use create_hyperparameter_boxplots from project_qnn_hyperparameter_analysis instead
-        Only works if iterations are 100, 500 and 1000
+        Makes boxplots for all bounds values. 
+        savepath: 'qnn-experiments/plots/box_plots/bounds'
     '''
-    save_path = 'qnn-experiments/experimental_results/results/box_plots/'
-    data_opt = data[opt]
-    #nits, funs = zip(*data_opt)
-    #hist, bin_edges = np.histogram(nits)
-    data_dict = {100: [], 500: [], 1000: []}
-    for n, f in data_opt:
-        if(n==100):
-            data_dict[100].append(f)
-        elif(n==500):
-            data_dict[500].append(f)
-        elif(n==1000):
-            data_dict[1000].append(f)
-        else:
-            print(f"Iterationszahl {n} ist nicht 100, 500, oder 1000")
-    plt.figure()
-    x = [100,500,1000]
-    plt.boxplot(data_dict.values(), labels=data_dict.keys())
-    #plt.xticks(ticks=x,labels=x)
-    plt.xlabel('Iterations')
-    plt.ylabel('Function value')
-    #plt.ylim((0,1))
-    plt.title(f"Achieved loss function values per number of (maximum) iterations:\n{opt}",fontsize='large')
-    plt.grid(True)
-    file_path = os.path.join(save_path, f'{opt}_boxplot_fun.png')
-    plt.savefig(file_path)
-    plt.close()
-    
+    directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
+    save_path = f'qnn-experiments/plots/box_plots/bounds'
 
-def get_conf_ids(data_type, num_data_points, s_rank,every_fifth_config=False):
-    '''
-        Returns a list of config ids that correspond to data_type, num_data_points and s_rank.
-        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
-        num_data_points (String): 1,2,3,4
-        s_rank (String): 1,2,3,4
-        every_fifth_config (bool): true, if there are only json files for every fifth config (used for testing purposes). Default: false
-    '''
-    # use to determine which conf_ids should be added to list (every single one or every fifth)
-    mod = 1
-    if(every_fifth_config):
-        mod=5
-    data = []
-    conf_id_list = []
-    file_path = "Code/entangled_qnn_training-main/data/configDict.json"
-    with open(file_path, 'r') as file:
-        try:
-            data = json.load(file)
-            for i in range(len(data)):
-                if(i%mod == 0 and data[str(i)]["data_type"]==data_type and data[str(i)]["num_data_points"]==num_data_points and data[str(i)]["s_rank"]==s_rank):
-                    conf_id_list.append(i)
-        except json.JSONDecodeError:
-            print(f"Fehler beim Laden der Datei: {file_path}")
-    return(conf_id_list)
+    json_data = load_json_data(directory)
+    res_min, res_max, res_min_max = extract_solution_x_data(json_data)
+    create_min_max_boxplots(res_min, res_max, save_path)
 
-def get_conf_ids_forParam(distinctionParam, paramValue):
-    '''adds all configs that match with a specified parameter Value for all other parameters staying unspecified
-        -->data_type, num_data_points, s_rank
-    '''
-    
-    data = []
-    conf_id_list = []
-    file_path = "Code/entangled_qnn_training-main/data/configDict.json"
-    with open(file_path, 'r') as file:
-        try:
-            data = json.load(file)
-            for i in range(len(data)):
-                if(data[str(i)][distinctionParam]==paramValue):
-                    conf_id_list.append(i)
-        except json.JSONDecodeError:
-            print(f"Fehler beim Laden der Datei: {file_path}")
-    return(conf_id_list)
-
-
-def load_json_data(directory, conf_id_list):
-    '''
-        Load Json-data for each config_id in conf_id_list from files saved in directory.
-        File names start with "conf_{config_id}_" and end with ".json".
-    '''
-    all_data = {}
-    for id in conf_id_list:
-        all_data[id] = []
-        for filename in os.listdir(directory):
-            if filename.endswith('.json') and filename.startswith(f'conf_{id}_'):
-                file_path = os.path.join(directory, filename)
-                #print(f"Lade Datei: {file_path}")
-                with open(file_path, 'r') as file:
-                    try:
-                        all_data[id].append(json.load(file))
-                    except json.JSONDecodeError:
-                        print(f"Fehler beim Laden der Datei: {file_path}")
-        if not all_data:
-            print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
-    return all_data
-
-def extract_mean_callback_data(directory, max_iter, opt, data_type, num_data_points, s_rank,every_fifth_config=False,target_learning_rate=None):
-    '''
-        For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
-        config id if the config_id fullfills data_type, num_data_points, s_rank. 
-        Exactly one of data_type, num_data_points or s_rank is None, hence callback data for all possible values of this parameter will be extracted.
-    
-        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
-        num_data_points (String): 1,2,3,4
-        s_rank (String): 1,2,3,4
-        every_fifth_config (bool): true, if there are only json files for every fifth config (used for testing purposes). Default: false
-    '''
-    # Determine key names for maxiter (TODO: change back if changed during final experiment)
-    maxiter_name = "maxiter"
-    nit_name = "nit"
-
-    # Stepsize: Stepsize between Iterations whose fun value is saved in callback
-    # for Powell, BFGS and Dual Annealing: stepsize = 1 (every iteration)
-    # for all other optimizers: stepsize = 10 (every 10th iteration)
-    stepsize = 10
-    if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm', 'diff_evolution']:
-        stepsize = 1
-
-    # check only one parameter (data_type, num_data_points, s_rank) is None:
-    param_values = {'data_type': ["random", "orthogonal", "var_s_rank", "non_lin_ind"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
-    param_names = ['data_type', 'num_data_points', 's_rank']
-    params = [data_type, num_data_points, s_rank]
-    none_indices = [i for i in range(len(params)) if params[i] == None]
-    if(len(none_indices)>1):
-        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
-    
-    # determine all config_ids that fulfill (data_type, num_data_points, s_rank)
-    none_param = param_names[none_indices[0]]
-    values = param_values[none_param]
-    conf_id_list = {} # dictionary: for each possible value of the non-specified parameter a list of corresponding config_ids is saved
-    for value in values:
-        params_current = [value if v is None else v for v in params] #determine correct parameter values (substitute value for None)
-        conf_id_list[value] = get_conf_ids(data_type=params_current[0], num_data_points=params_current[1], s_rank=params_current[2],every_fifth_config=every_fifth_config)
-
-    # for each list in conf_id_list (i.e. each possible value of non-specified parameter) (and each databatch): determine a list of mean callback values
-    mean_fun_values = {}
-    max_nit_values = {}
-    for value in conf_id_list.keys():
-        all_data = load_json_data(directory, conf_id_list[value])
-        fun_values = []
-        nit_values = []
-        if(config_ids_must_be_skipped(data_type,num_data_points,s_rank,value)):
-            continue
-        for id in conf_id_list[value]:
-            for entry in all_data[id]:
-                if isinstance(entry, dict):
-                    # go through each databatch
-                    for batch_key in entry:
-                        if batch_key.startswith("databatch_"):
-                            if opt in entry[batch_key]:
-                                # get data for optimizer opt
-                                batch_data = entry[batch_key][opt]
-                                for key in batch_data:
-                                    data = batch_data[key]
-                                    
-                                    # data must be dictionary and contain keys
-                                    if isinstance(data, dict):
-                                        nit = data.get(nit_name, None) # nit: number of total iterations needed to reach optimal fun-value
-                                        fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
-                                        iter = data.get(maxiter_name, None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
-                                        callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
-                                        learning_rate = data.get("learning_rate", None) # for SGD optimizers: learning rate. Used to filter for specific learning rate. If optimizer does not use learning_rate it is None
-                                        if(iter == max_iter and learning_rate == target_learning_rate): # if target_learning_rate is not specified, it is None
-                                            if nit is None or opt == 'dual_annealing': #cobyla doesn't save nit and dual_annealing saves the wrong value (max_iter) for nit
-                                                nit = (len(callback)-1)*stepsize
-                                            if nit is not None and fun is not None:
-                                                try:
-                                                    nit = int(nit)
-                                                    fun = float(fun)
-                                                    if(callback[-1] != fun): # append optimal fun value, if it isn't already the last value in callback-list
-                                                        callback.append(fun)
-                                                    fun_values.append(callback) 
-                                                    nit_values.append(nit)
-                                                except ValueError as e:
-                                                    print(f"Fehler beim Konvertieren der Daten: {e}")
-                                            else:
-                                                print(f"Fehlende Schlüssel in den Daten: {data}")
-                                    #else:
-                                        #print(f"Unerwartete Datenstruktur: {data}")
-                            else:
-                                print(f"Optimierer {opt} nicht in den Datenbatch {batch_key} gefunden")
-                else:
-                    print("Eintrag ist kein Dictionary")
-        # compute mean of callback fun values over each config_id and each databatch per config_id
-        # for runs that used less iterations than others: fill those lists with the optimal fun value achieved
-        max_len = len(max(fun_values, key=len))
-        # pad right of each sublist of fun_values with optimal fun value to make it as long as the longest sublist
-        for sublist in fun_values:
-            opt_fun_val = sublist[-1]
-            sublist[:] = sublist + [opt_fun_val] * (max_len - len(sublist))
-        fun_arrays = [np.array(x) for x in fun_values]
-        mean_fun_values[value] = [np.mean(k) for k in zip(*fun_arrays)]
-        # compute maximum of total number of iterations (nit) for each config_id and each databatch per config_id
-        max_nit_values[value] = np.max(nit_values)
-    return mean_fun_values,max_nit_values
-
-def config_ids_must_be_skipped(data_type,num_data_points,s_rank, value):
-    ''' 
-        Returns true if for this combination of data_type, number of data points and s_rank the original configurations were faulty 
-        (i.e. trainingsdata does not have norm 1) TODO: stimmt das???
-        Combinations to be skipped are: data_type = non_lin_ind, s_rank = 3, num_data_points in [2,3,4]
-        One of data_type, num_data_points and s_rank is None and the None-parameter has the specified value.
-        Return:
-            true if this combination of parameters needs to be skipped. False otherwise
-    '''
-    params = [data_type, num_data_points, s_rank]
-    none_indices = [i for i in range(len(params)) if params[i] == None]
-    if(len(none_indices)>1):
-        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
-    params[none_indices[0]] = value
-    if(params in combinations_to_skip):
-        print(params)
-        return True
-    else:
-        return False
-
+########## Convergence Plots ##########
 
 def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt, maxiter, data_type, num_data_points, s_rank, learning_rate=None):
     '''
@@ -515,11 +718,13 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
                 title += ", "
     
     #colors for each config id
-    cmap = matplotlib.colormaps["tab10"]
+    #cmap = matplotlib.colormaps["tab10"]
+    cmap = ['skyblue', 'darkseagreen', 'green', 'grey']
     plt.figure()
     c = 0 # needed to determine correct color
     for param_value in mean_fun_data.keys():
-        color = cmap(c/4) # divide by 4, since all three parameters can take 4 values and to keep colours consistent even if not all 4 values appear in plot
+        #color = cmap(c/4) #use when loading a colormap from matplotplib
+        color = cmap[c]
         label = f"{none_param} = {param_value}"
         y = mean_fun_data[param_value]
         # Genetic Algorithm saves callback function values for all maxiter iterations, instead of only nit iterations
@@ -542,100 +747,68 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
     plt.savefig(file_path)
     plt.close()
 
-def load_and_extract_callback_data(directory, data_type, num_data_points, s_rank, max_iter, opt, databatch):
+def calc_convergence_data(datatype, num_data_points, s_rank):
     '''
-        DEPRECATED
-        For each entry in json_data (each configuration) extract list of every tenth fun-value (callback), no of maximum iterations,
-        config id if the config_id fullfills data_type, num_data_points, s_rank. 
-        If one of data_type, num_data_points or s_rank is None callback data for all possible values of this parameter will be extracted.
-        Only one of those parameters can be None.
+        Calculates the mean of all configurations that fit 
+        Exactly one of data_type, num_data_points or s_rank is None, hence callback data for all possible values of this parameter will be extracted.
+        The mean achieved function value history per optimizer per value of the None-parameter is calculated for every optimizer.
+
+        Needed for make_all_convergence_plots()
+
         data_type (String): random, orthogonal, non_lin_ind, var_s_rank
         num_data_points (String): 1,2,3,4
         s_rank (String): 1,2,3,4
+        
+        Prerequisite: mean_callback_values_per_config is not empty.
+
+        Result: 
+            callback_values: dictionary of dictionaries. Level 1 key: optmizer, level 2 key: value of None-parameter, values: List of callback values
+            nit_values: dictionary of dictionaries. Level 1 key: optmizer, level 2 key: value of None-parameter, values: corresponding maximum number of iterations for this list of callback values
     '''
+    if len(mean_callback_values_per_config)==0:
+        raise Exception("Data has not been extracted from json files. Execute extract_all_data_from_json_files() and try again.")
+
+    callback_values = {}
+    nit_values = {}
+
+    # check that only one parameter (data_type, num_data_points, s_rank) is None:
+    param_values = {'data_type': ["random", "orthogonal", "var_s_rank", "non_lin_ind"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
+    param_names = ['data_type', 'num_data_points', 's_rank']
+    params = [datatype, num_data_points, s_rank]
+    none_indices = [i for i in range(len(params)) if params[i] == None]
+    if(len(none_indices)>1):
+        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
     
-    # determine all config_ids that fulfill (data_type, num_data_points, s_rank)
-    conf_id_list = get_conf_ids(data_type, num_data_points, s_rank)
+    # determine the variable parameter (None-parameter)
+    none_param = param_names[none_indices[0]]
+    
+    for opt in opt_titles.keys():
+        callback_values[opt] = {}
+        nit_values[opt] = {}
+        for value in param_values[none_param]:
+            params_current = [value if v is None else v for v in params] #determine correct parameter values (substitute value for None)
+            if params_current in combinations_to_skip:
+                continue
+            # determine list of config-Ids that belong to this specific combinations of parameters
+            conf_id_list = get_conf_ids(data_type=params_current[0], num_data_points=params_current[1], s_rank=params_current[2])
+            callbacks = [mean_callback_values_per_config[opt][i] for i in conf_id_list]
+            
+            # compute mean of callback fun values over each config_id 
+            # for conf_ids that needed less iterations than others: fill those lists with the optimal fun value achieved
+            max_len = len(max(callbacks, key=len))
+            # pad right of each sublist of fun_values with optimal fun value to make it as long as the longest sublist
+            for sublist in callbacks:
+                opt_fun_val = sublist[-1]
+                sublist[:] = sublist + [opt_fun_val] * (max_len - len(sublist))
+            fun_arrays = [np.array(x) for x in callbacks]
+            callback_values[opt][value] = [np.mean(k) for k in zip(*fun_arrays)]
 
-    # load json data for each config_id
-    all_data = load_json_data(directory, conf_id_list)
+            # compute correct maximum number of iterations
+            nits = [max_nit_values_per_config[opt][i] for i in conf_id_list]
+            nit_values[opt][value] = np.max(nits)
+    return callback_values, nit_values
 
-    fun_values = {}
-    for id in conf_id_list:
-        if id in conf_ids_to_skip:
-            continue
-        for entry in all_data[id]:
-            fun_values[id] = []
-            if isinstance(entry, dict):
-                # go through each databatch
-                for batch_key in entry:
-                    if batch_key == f'databatch_{databatch}':
-                        #print(f"Verarbeite Datenbatch: {batch_key}")
-                        if opt in entry[batch_key]:
-                            #print(f"Verarbeite Optimierer: {opt}")
-                            # get data for optimizer opt
-                            batch_data = entry[batch_key][opt]
-                            for key in batch_data:
-                                data = batch_data[key]
-                                
-                                # data must be dictionary and contain keys
-                                if isinstance(data, dict):
-                                    nit = data.get("nit", None) # nit: number of total iterations needed to reach optimal fun-value
-                                    fun = data.get("fun", None) # fun: optimal fun-value reached during optimization
-                                    iter = data.get("maxiter", None) # maxiter: number of maximum iterations optimizer was given (100, 500, or 1000)
-                                    callback = data.get("callback", None) # callback: list of fun_values for every tenth iteration
-                                    if(iter == max_iter):
-                                        if nit is not None and fun is not None:
-                                            try:
-                                                nit = int(nit)
-                                                fun = float(fun)
-                                                if(len(callback)*10 != nit): # append optimal fun value, if it isn't already the last value in callback-list
-                                                    callback.append(fun)
-                                                fun_values[id].append((nit, callback)) 
-                                            except ValueError as e:
-                                                print(f"Fehler beim Konvertieren der Daten: {e}")
-                                        else:
-                                            print(f"Fehlende Schlüssel in den Daten: {data}")
-                                #else:
-                                    #print(f"Unerwartete Datenstruktur: {data}")
-                        else:
-                            print(f"Optimierer {opt} nicht in den Datenbatch {batch_key} gefunden")
-            else:
-                print("Eintrag ist kein Dictionary")
-    return fun_values
-
-def convergence_plot_per_optimizerOLD(data, opt, data_type, num_data_points, s_rank, maxiter, databatch):
-    '''
-        DEPRECATED
-    '''
-    save_path = 'qnn-experiments/experimental_results/results/convergence_plots/' # this Path doesn't exist 
-    title = f'Convergence plot for {opt}, maxiter = {maxiter}, databatch = {databatch}\n Datatype: {data_type}, Number of Data Points: {num_data_points}, Schmidt rank: {s_rank}'
-    #colors for each config id
-    cmap = matplotlib.colormaps["tab20c"]
-    plt.figure()
-    c = 0
-    for id in data.keys():
-        color = cmap(c/len(data))
-        c += 1
-        label = f"Config {id}"
-        for i in range(len(data[id])):
-            values = data[id][i]
-            y = values[1]
-            x = np.append(np.arange(10,values[0], 10), values[0])
-            if(i==0):
-                plt.plot(x,y, color=color, label=label)
-            else:
-                plt.plot(x,y, color=color)
-    plt.xlabel('Iteration')
-    plt.ylabel('Function value')
-    plt.legend()
-    plt.title(title)
-    plt.grid(True)
-    file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png') # TODO: better naming system
-    plt.savefig(file_path)
-    plt.close()
-
-def make_all_convergence_plots_for(optimizers, origin_path,learning_rate=None,save_path='qnn-experiments/plots/convergence_plots/'):
+def make_all_convergence_plots(save_path='qnn-experiments/plots/convergence_plots/'):
     '''
         Make all convergence plots for each combination of configuration attributes (data type, number of data points and Schmidt-rank)
         for each optimizer in optimizers for maximum number of iterations 100 and 1000. 
@@ -644,95 +817,59 @@ def make_all_convergence_plots_for(optimizers, origin_path,learning_rate=None,sa
         qnn-experiments/plots/convergence_plots/maxiter/1000/datatype/random/num_data_points/
 
         Pre-Req:
-            json files must be in origin_path for all optimizers in optimizers 
-            and optimizers must contain Strings exactly matching the optimizer name in the json-file
             if a save_path is given it must end with "/"
+            mean_callback_values_per_config is not empty.
     '''
-    if(save_path[-1] != "/"):
-        raise NotADirectoryError("Invalid save path. Save path must end with /.")
-
-    datatype_list = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
-    num_data_points_list = ['1', '2', '3', '4']
-    s_rank_list = ['1', '2', '3', '4']
-    maxiter_list = [100,1000]
     
-    # convergence plots for variable s_rank, but fixed datatype and num_data_points
-    print("Variable S-Rank in progress...")
     for maxiter in maxiter_list:
         print(f"maxiter: {maxiter}")
         for datatype in datatype_list:
             print(f"datatype: {datatype}")
+            # convergence plots for variable s_rank, but fixed datatype and num_data_points
+            print("Variable S-Rank in progress...")
             for num_data_points in num_data_points_list:
                 print(f"num_data_points: {num_data_points}")
                 path = save_path+f'maxiter/{maxiter}/datatype/{datatype}/num_data_points/{num_data_points}'
-                for opt in optimizers:
-                    if opt in ['sgd', 'adam', 'rmsprop']:
-                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, num_data_points, None,target_learning_rate=learning_rate) 
-                    else:
-                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype,num_data_points, None,)
-                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, num_data_points, None, learning_rate)
+                callback_values, nit_values = calc_convergence_data(datatype, num_data_points, None)
+                for opt in opt_titles.keys():
+                    learning_rate = None
+                    if opt in ["sgd", "adam", "rmsprop"]:
+                        learning_rate = 0.01
+                    convergence_plot_per_optimizer(path, callback_values[opt],nit_values[opt], opt, maxiter, datatype, num_data_points, None, learning_rate)
                     print(f"optimizer: {opt} done")
-
-    # convergence plots for variable num_data_points, but fixed datatype and s_rank
-    print("Variable number of data points in progress...")
-    for maxiter in maxiter_list:
-        print(f"maxiter: {maxiter}")
-        for datatype in datatype_list:
-            print(f"datatype: {datatype}")
+            
+            # convergence plots for variable num_data_points, but fixed datatype and s_rank
+            print("Variable number of data points in progress...")
             for s_rank in s_rank_list:
                 if(s_rank==3 and datatype=="non_lin_ind"):
-                    print("skipping s-rank = 2, datatype = non_lin_ind")
+                    print("skipping s-rank = 3, datatype = non_lin_ind")
                     continue
                 print(f"s-rank: {s_rank}")
                 path = save_path+f'maxiter/{maxiter}/datatype/{datatype}/s_rank/{s_rank}'
-                for opt in optimizers:
-                    if opt in ['sgd', 'adam', 'rmsprop']:
-                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank,target_learning_rate=learning_rate) 
-                    else:
-                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,datatype, None, s_rank)
-                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, datatype, None, s_rank, learning_rate)
-                    print(f"optimizer: {opt} done")  
-
-    # convergence plots for variabel datatype, but fixed num_data_points and s_rank
-    print("Variable datatype in progress...")
-    for maxiter in maxiter_list:
-        print(f"maxiter: {maxiter}")
+                callback_values, nit_values = calc_convergence_data(datatype, None, s_rank)
+                for opt in opt_titles.keys():
+                    learning_rate = None
+                    if opt in ["sgd", "adam", "rmsprop"]:
+                        learning_rate = 0.01
+                    convergence_plot_per_optimizer(path, callback_values[opt],nit_values[opt], opt, maxiter, datatype, None, s_rank, learning_rate)
+                    print(f"optimizer: {opt} done") 
+        
+        # convergence plots for variabel datatype, but fixed num_data_points and s_rank
+        print("Variable datatype in progress...")
         for s_rank in s_rank_list:
             print(f"s-rank: {s_rank}")
             for num_data_points in num_data_points_list:
                 print(f"num_data_points: {num_data_points}")
                 path = save_path+f'maxiter/{maxiter}/s_rank/{s_rank}/num_data_points/{num_data_points}'
-                for opt in optimizers:
+                callback_values, nit_values = calc_convergence_data(None, num_data_points, s_rank)
+                for opt in opt_titles.keys():
+                    learning_rate = None
                     if opt in ['sgd', 'adam', 'rmsprop']:
-                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points, s_rank,target_learning_rate=learning_rate) 
-                    else:
-                        fun_values, nit_values = extract_mean_callback_data(origin_path,maxiter,opt,None, num_data_points, s_rank)
-                    convergence_plot_per_optimizer(path, fun_values,nit_values, opt, maxiter, None, num_data_points, s_rank, learning_rate)
+                        learning_rate = 0.01 
+                    convergence_plot_per_optimizer(path, callback_values[opt],nit_values[opt], opt, maxiter, None, num_data_points, s_rank, learning_rate)
                     print(f"optimizer: {opt} done")
 
-def make_all_convergence_plots():
-    '''
-        Make all convergence plots for each combination of configuration attributes (data type, number of data points and Schmidt-rank)
-        for each optimizer in optimizers for maximum number of iterations 100 and 1000. 
-        Plots are saved as .png files in qnn-experiments/plots/convergence_plots.
-        Example file path for a plot with maximum 1000 iterations, datatype=random and num_data_points=1:
-        qnn-experiments/plots/convergence_plots/maxiter/1000/datatype/random/num_data_points/
-    '''
-    learning_rate = 0.01
-
-    optimizers1 = ['nelder_mead', 'powell', 'sgd', 'adam', 'rmsprop', 'bfgs','slsqp','dual_annealing','cobyla']
-    optimizers2 = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
-
-    origin_path1 = 'experimental_results/results/optimizer_results/experiment_part1'
-    origin_path2 = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
-    
-    start = time.time()
-    print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
-
-    make_all_convergence_plots_for(optimizers1, origin_path1,learning_rate=learning_rate)
-    #make_all_convergence_plots_for(optimizers2, origin_path2)
-
-    print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
+########## Category Boxplots for Optimizer Categories ##########
 
 def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased,xAxisName,iterList):
     #data_GradFree={1:[0.2,0.8],2:[0.2,0.8],3:[0.2,0.8],4:[0.2,0.8]} 
@@ -824,12 +961,12 @@ def extract_func_data(directory, conf_id_list,every_fifth_config=False,target_le
     gradient_free_original = ["nelder_mead", "powell", "cobyla", "dual_annealing"]
     gradient_free_evolutional = ["genetic_algorithm", "particle_swarm", "diff_evolution"]
 
-#   wihout SGD!
+    #   wihout SGD!
     gradient_based = ["adam", "rmsprop", "bfgs","slsqp"]
     
 
 
-   # for each list in conf_id_list (i.e. each possible value of non-specified parameter) (and each databatch): determine a list of mean callback values
+    # for each list in conf_id_list (i.e. each possible value of non-specified parameter) (and each databatch): determine a list of mean callback values
     fun_values_grad = []
     fun_values_gradfree_og = []
     fun_values_gradfree_evolutional = []
@@ -941,12 +1078,20 @@ def makeCategoryBoxplots(xAxisName):
 
 
 if __name__ == "__main__":
-    directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
-    save_path = f'qnn-experiments/plots/box_plots/bounds'
 
-    #json_data = load_json_files(directory)
-    #res_min, res_max, res_min_max = extract_solution_x_data(json_data)
-    #create_min_max_boxplots(res_min, res_max, save_path)
+    # change current working directory to access correct files
+    os.chdir("../../")
     
-    makeCategoryBoxplots('s_rank')
-    
+    # prepare data for convergence plots
+    extract_all_data_from_json_files()
+    fill_mean_fun_values()
+    # make all convergence plots
+    make_all_convergence_plots()
+
+    # compute all relevant convergence plot info (like achieved function values, delta, STD, etc.)
+    compute_convergence_plot_information()
+
+    # make all category boxplots for optimizers (grad-free, evolution based, grad-based (without SGD))
+    # makeCategoryBoxplots('s_rank')
+    # makeCategoryBoxplots('data_type')
+    # makeCategoryBoxplots('num_data_points')

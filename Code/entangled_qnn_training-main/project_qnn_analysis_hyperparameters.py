@@ -179,9 +179,17 @@ def load_fun_nit_for_c1_c2_PSO(data, prelim=False):
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
 
 
-def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=False):
+def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=False, more_info=False):
+    '''
+        Creates boxplots for each hyperparameter in hyperparameters for optimizer opt. Json Data source is json_data. 
+        If prelim=True: keys in json files are a bit different for preliminary testing for some optimizers
+        If more_info=True: More information, such as mean and STD are save in a txt-file called 
+            {opt}_hyperparameter_info.txt in the same location
+    '''
     # create path if it does not exist 
     os.makedirs(path, exist_ok=True)
+    # prep txt file
+    file_text = f"{opt} hyperparameter info\n===============================\n"
     # replace "iterations" with "generations" in plots if opt is genetic algorithm
     nit_name = "iterations"
     nit_name_short = "nit"
@@ -189,6 +197,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
         nit_name = "objective function evaluations"
         nit_name_short = "nfev"
     # make two boxplots per hyperparameter: one for function values, one for number of iterations
+    text = {}
     for par in hyperparameters:
         #c1,c2 need to be analysed separately
         if par == "c1_c2":
@@ -197,7 +206,14 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
             fun_dict, nit_dict = load_fun_nit_per_bounds_data(opt, prelim=prelim)
         else:
             fun_dict, nit_dict = load_fun_nit_per_hyperparameter_data(json_data,opt,par, prelim=prelim)
-
+        if(more_info==True):
+            text[par] = ""
+            for value in fun_dict.keys():
+                mean = np.mean(fun_dict[value])
+                min = np.min(fun_dict[value])
+                max = np.max(fun_dict[value])
+                std = np.std(fun_dict[value])
+                text[par] += f"{par} = {value}: mean={mean},    min={min},  max={max},  std={std}\n"
         # Boxplot for function values
         file_path = os.path.join(path, f'{opt}_boxplot_fun_{par}.png')
         plt.figure()
@@ -221,6 +237,13 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
         plt.grid(True)
         plt.savefig(file_path)
         plt.close()
+
+    if(more_info==True):
+        for par in hyperparameters:
+            file_text += text[par]+"===============================\n"
+        save_path = os.path.join(path, f'{opt}_hyperparameter_info.txt')
+        with open(save_path, 'w') as f:
+            f.write(file_text)
 
 def get_all_fun_values_for_opts(data, opt_list):
     optimizer_data = {}
@@ -276,7 +299,7 @@ def create_all_hyperparameter_boxplots():
     # create boxplots for experiment part 1
     for opt in opt_list:
         save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
-        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt],more_info=True)
         print(f"{opt} done")
     #all_opts_fun_value_boxplots(save_path,json_data,opt_list)
     del json_data
@@ -287,22 +310,23 @@ def create_all_hyperparameter_boxplots():
     # create boxplots for experiment part 1
     for opt in opt_list:
         save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
-        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt])
+        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt],more_info=True)
         print(f"{opt} done")
     del json_data
 
 if __name__ == "__main__":
+    os.chdir("/Users/alina/qnn-experiments")
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
     opt_list = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
     directory = "experimental_results/results/optimizer_results/hyperparameter_tests_2024-10-26"
-    json_data = load_json_files(directory) 
+    # json_data = load_json_files(directory) 
 
-    for opt in opt_list:
-        save_path = f'qnn-experiments/plots/box_plots/preliminary_test/hyperparameters_GA_DE_PSO/{opt}'
-        create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt_prelim[opt], prelim=True)
-        print(f"{opt} done")
-
+    # for opt in opt_list:
+    #     save_path = f'qnn-experiments/plots/box_plots/preliminary_test/hyperparameters_GA_DE_PSO/{opt}'
+    #     create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt_prelim[opt], prelim=True)
+    #     print(f"{opt} done")
+    create_all_hyperparameter_boxplots()
     end = time.time()
     print(f"end time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))}")
     print(f"total runtime (with callback): {np.round((end-start)/60,2)}min") 

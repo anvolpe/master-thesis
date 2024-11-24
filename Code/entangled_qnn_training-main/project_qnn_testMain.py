@@ -1,3 +1,4 @@
+import itertools
 import multiprocessing
 import time
 from datetime import datetime
@@ -14,6 +15,14 @@ from multiprocessing.pool import Pool
 import pyswarms as ps
 from pyswarms.utils.functions import single_obj as fx
 import re
+
+import pandas as pd
+
+opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD', 
+              'adam':'Adam', 'rmsprop':'RMSprop', 'bfgs':'BFGS','slsqp':'SLSQP',
+              'dual_annealing':'Dual Annealing','cobyla':'COBYLA',
+              'genetic_algorithm':'Genetic Algorithm', 'particle_swarm': 'Particle Swarm Optimization',
+              'diff_evolution':'Differential Evolution'}
 
 #LÖSCHEN?
 
@@ -296,8 +305,57 @@ def pso_test():
     print(results)
 
 if __name__ == "__main__":
-    x = np.array([1,2,3])
-    print(-x)
+
+    m = {"nelder_mead": [1, 2, 34, 5], "adam": [3, 4, 5, 1], "rmsprop": [1, 3, 4, 6]}
+    opts = ["nelder_mead", "rmsprop", "adam"]
+    conf_ids = [1, 3]
+    row = [np.mean([m[opt][i] for i in conf_ids]) for opt in opts]
+    print(row)
+    print([3.5, 4.5, 2.5])
+
+
+    # check that only one parameter (data_type, num_data_points, s_rank) is None:
+    param_values = {'data_type': ["random", "orthogonal", "var_s_rank", "non_lin_ind"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
+    param_names = ['data_type', 'num_data_points', 's_rank']
+    params = [None, "3", "1"]
+    not_none_indices = [i for i in range(len(params)) if params[i] != None]
+    print(not_none_indices)
+    if(len(not_none_indices) != 2):
+        raise Exception('Exactly one parameter of data_type, num_data_points and s_rank must be None')
+    
+    # determine the non-variable parameter
+    none_param = [param_names[i] for i in not_none_indices]
+    print(none_param)
+
+    # fill dataframe with random numbers
+    mean_fun_values = pd.DataFrame(columns=["data_type", "s_rank", "num_data_points"]+list(opt_titles.keys()))
+    index = ['data_type', 'num_data_points', 's_rank']
+    temp = np.random.default_rng().random(size=(64, 12))
+    arrays = [param_values['data_type'], param_values['s_rank'], param_values['num_data_points']]
+    tuples = list(itertools.product(*arrays))
+    index = pd.MultiIndex.from_tuples(tuples, names=["data_type", "s_rank", "num_data_points"])
+    mean_fun_values = pd.DataFrame(np.random.randn(64,12), index=index,columns=opt_titles.keys())          
+    #print(mean_fun_values)
+    none_index = [i for i in range(len(params)) if params[i] == None]
+    var_param = param_names[none_index[0]]
+
+    # determine the non-variable parameters
+    param0 = param_names[not_none_indices[0]]
+    param1 = param_names[not_none_indices[1]]
+    values = {"data_type":None, "num_data_points": "3", "s_rank":"1"}
+    print(f"{param0}=={values[param0]} and {param1}=={values[param1]}")
+    m0 = mean_fun_values.index.get_level_values(param0) == values[param0]
+    m1 = mean_fun_values.index.get_level_values(param1) == values[param1]
+    df = mean_fun_values[m0 & m1]
+    print(df)
+    df1 = (df.reset_index().drop([param0, param1], axis=1).set_index([var_param])
+           .apply(lambda x: x.index[x.argsort()])
+           .reset_index(drop=True)
+           )
+    print(df1)
+
+
+   
 
 
 
