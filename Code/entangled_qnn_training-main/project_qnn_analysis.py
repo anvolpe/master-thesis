@@ -172,7 +172,7 @@ def fill_mean_fun_values():
                 s = pd.Series(data=row,index=index)
                 mean_fun_values.loc[len(mean_fun_values)] = s
     mean_fun_values.set_index(["data_type", "s_rank", "num_data_points"], inplace=True)
-    mean_fun_values.to_csv('qnn-experiments/plots/convergence_plots/maxiter/1000/mean_fun_values.csv', index=True)
+    mean_fun_values.to_csv('qnn-experiments/plots/convergence_plots/maxiter/1000/plot_info/mean_fun_values.csv', index=True)
 
     return mean_fun_values
 
@@ -669,10 +669,10 @@ def extract_optimizer_data(json_data,use_nits=True):
 def make_bounds_boxplots():
     '''
         Makes boxplots for all bounds values. 
-        savepath: 'qnn-experiments/plots/box_plots/bounds'
+        savepath: 'qnn-experiments/plots/hyperparameter_plots/preliminary_test/bounds'
     '''
     directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
-    save_path = f'qnn-experiments/plots/box_plots/bounds'
+    save_path = f'qnn-experiments/plots/hyperparameter_plots/preliminary_test/bounds'
 
     json_data = load_json_data(directory)
     res_min, res_max, res_min_max = extract_solution_x_data(json_data)
@@ -1050,7 +1050,7 @@ def makeCategoryBoxplots(xAxisName):
     
     origin_path = 'experimental_results/results/optimizer_results/experiment_part1'
     origin_path_2nd = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
-    save_path='qnn-experiments/plots/categoryplots/New/'
+    save_path='qnn-experiments/plots/category_plots/three_categories_withoutSGD/'
     r_rankDict_grad={}
     r_rankDict_gradFree={}
     r_rankDict_gradFree_EVO={}

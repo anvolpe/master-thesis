@@ -135,9 +135,7 @@ def test_single_optimizer(callback: bool):
     
     # Generate initial parameter values for the qnn from the range [0, 2*pi]
     initial_param_values = np.random.uniform(0, 2*np.pi, size=dimensions)
-    initial_param_values_tensor = torch.tensor(initial_param_values)
-
-
+    
     # Run the optimization using the Nelder-Mead optimizer
     # include a callback function to save intermediate results during the optimization process 
     if callback==True:

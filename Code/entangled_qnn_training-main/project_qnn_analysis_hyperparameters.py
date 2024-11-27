@@ -49,6 +49,7 @@ opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD',
               'genetic_algorithm':'Genetic Algorithm', 'particle_swarm': 'Particle Swarm Optimization',
               'diff_evolution':'Differential Evolution'}
 
+
 def load_fun_nit_per_bounds_data(opt, prelim=False):
     '''
         For a specific optimizer {opt}: Creates one dictionary that contains a list of achieved function values after optimization
@@ -59,7 +60,7 @@ def load_fun_nit_per_bounds_data(opt, prelim=False):
     nit_per_bounds = {}
     #load json data
     directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
-    data = load_json_files(directory)
+    data = load_json_data(directory)
     bounds_values = {"bounds_0": "none", "bounds_1": "$[0,2\pi]$", "bounds_2": "$[0,4\pi]$", "bounds_3": "$[-2\pi, 2\pi]$", "bounds_4": "$[-4\pi, 4\pi]$"}
 
     #choose correct dictionary key names in json file for a specific optimizer
@@ -71,27 +72,30 @@ def load_fun_nit_per_bounds_data(opt, prelim=False):
         nit_key_name = "nfev"
 
     for i in range(len(data)):
-        conf_id = data[i]["conf_id"]
+        conf_id = data[i][0]["conf_id"]
+        print(len(data[i]))
+        print(data[i][0]["conf_id"])
         if conf_id in conf_ids_to_skip:
             continue
-        for databatch_id in databatches:
-            for bounds_id in bounds_values.keys():
-                try:
-                    dict = data[i][databatch_id][bounds_id][opt]
-                    bounds_value = bounds_values[bounds_id]
-                    if bounds_value not in fun_per_bounds:
-                        fun_per_bounds[bounds_value] = []
-                    if bounds_value not in nit_per_bounds:
-                        nit_per_bounds[bounds_value] = []
+        for j in range(len(data[i])):
+            d = data[i][j]
+            for databatch_id in databatches:
+                for bounds_id in bounds_values.keys():
+                    try:
+                        dict = d[databatch_id][bounds_id][opt]
+                        bounds_value = bounds_values[bounds_id]
+                        if bounds_value not in fun_per_bounds:
+                            fun_per_bounds[bounds_value] = []
+                        if bounds_value not in nit_per_bounds:
+                            nit_per_bounds[bounds_value] = []
 
-                    for j in range(0,len(dict)-1):
-                        #append fun and nit value to correct list in result dictionaries
-                        fun_per_bounds[bounds_value].append(float(dict[str(j)][fun_key_name]))
-                        nit_per_bounds[bounds_value].append(int(dict[str(j)][nit_key_name]))
-                except KeyError as e:
-                    print(f"Fehler beim Lesen der Daten: {e}")
+                        for j in range(0,len(dict)-1):
+                            #append fun and nit value to correct list in result dictionaries
+                            fun_per_bounds[bounds_value].append(float(dict[str(j)][fun_key_name]))
+                            nit_per_bounds[bounds_value].append(int(dict[str(j)][nit_key_name]))
+                    except KeyError as e:
+                        print(f"Fehler beim Lesen der Daten: {e}")
     return fun_per_bounds, nit_per_bounds
-
 
 def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter, prelim=False):
     '''
@@ -114,27 +118,29 @@ def load_fun_nit_per_hyperparameter_data(data, opt, hyperparameter, prelim=False
         nit_key_name = "nfev"
 
     for i in range(len(data)):
-        conf_id = data[i]["conf_id"]
+        conf_id = data[i][0]["conf_id"]
         if conf_id in conf_ids_to_skip:
             continue
-        for databatch_id in databatches:
-            try:
-                dict = data[i][databatch_id][opt]
-                for j in range(0,len(dict)-1):
-                    hyperparameter_value = dict[str(j)][hyperparameter]
+        for j in range(len(data[i])):
+            d = data[i][j]
+            for databatch_id in databatches:
+                try:
+                    dict = d[databatch_id][opt]
+                    for j in range(0,len(dict)-1):
+                        hyperparameter_value = dict[str(j)][hyperparameter]
 
-                    if hyperparameter_value not in fun_per_hyperparameter_value:
-                        fun_per_hyperparameter_value[hyperparameter_value] = []
-                    if hyperparameter_value not in nit_per_hyperparameter_value:
-                        nit_per_hyperparameter_value[hyperparameter_value] = []
+                        if hyperparameter_value not in fun_per_hyperparameter_value:
+                            fun_per_hyperparameter_value[hyperparameter_value] = []
+                        if hyperparameter_value not in nit_per_hyperparameter_value:
+                            nit_per_hyperparameter_value[hyperparameter_value] = []
 
-                    #append fun and nit value to correct list in result dictionaries
-                    fun_per_hyperparameter_value[hyperparameter_value].append(float(dict[str(j)][fun_key_name]))
-                    nit_per_hyperparameter_value[hyperparameter_value].append(int(dict[str(j)][nit_key_name]))
-                    if(float(dict[str(j)][fun_key_name]) < 0):
-                        print("config ",conf_id, "databatch ", databatch_id, "run_n", j,hyperparameter, hyperparameter_value, "FUN WERT: ", dict[str(j)][fun_key_name])
-            except KeyError as e:
-                print(f"Fehler beim Lesen der Daten: {e}")
+                        #append fun and nit value to correct list in result dictionaries
+                        fun_per_hyperparameter_value[hyperparameter_value].append(float(dict[str(j)][fun_key_name]))
+                        nit_per_hyperparameter_value[hyperparameter_value].append(int(dict[str(j)][nit_key_name]))
+                        if(float(dict[str(j)][fun_key_name]) < 0):
+                            print("config ",conf_id, "databatch ", databatch_id, "run_n", j,hyperparameter, hyperparameter_value, "FUN WERT: ", dict[str(j)][fun_key_name])
+                except KeyError as e:
+                    print(f"Fehler beim Lesen der Daten: {e}")
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
 
 def load_fun_nit_for_c1_c2_PSO(data, prelim=False):
@@ -156,26 +162,28 @@ def load_fun_nit_for_c1_c2_PSO(data, prelim=False):
         nit_key_name = "ngeneration/max_iter"
 
     for i in range(len(data)):
-        conf_id = data[i]["conf_id"]
+        conf_id = data[i][0]["conf_id"]
         if conf_id in conf_ids_to_skip:
             continue
-        for databatch_id in databatches:
-            try:
-                dict = data[i][databatch_id][opt]
-                for j in range(0,len(dict)-1):
-                    c1 = dict[str(j)]["c1"]
-                    c2 = dict[str(j)]["c2"]
-                    c1_c2_value = f"[{c1},{c2}]"
-                    if c1_c2_value not in fun_per_hyperparameter_value:
-                        fun_per_hyperparameter_value[c1_c2_value] = []
-                    if c1_c2_value not in nit_per_hyperparameter_value:
-                        nit_per_hyperparameter_value[c1_c2_value] = []
+        for j in range(len(data[i])):
+            d = data[i][j]
+            for databatch_id in databatches:
+                try:
+                    dict = d[databatch_id][opt]
+                    for j in range(0,len(dict)-1):
+                        c1 = dict[str(j)]["c1"]
+                        c2 = dict[str(j)]["c2"]
+                        c1_c2_value = f"[{c1},{c2}]"
+                        if c1_c2_value not in fun_per_hyperparameter_value:
+                            fun_per_hyperparameter_value[c1_c2_value] = []
+                        if c1_c2_value not in nit_per_hyperparameter_value:
+                            nit_per_hyperparameter_value[c1_c2_value] = []
 
-                    #append fun and nit value to correct list in result dictionaries
-                    fun_per_hyperparameter_value[c1_c2_value].append(dict[str(j)][fun_key_name]) 
-                    nit_per_hyperparameter_value[c1_c2_value].append(dict[str(j)][nit_key_name])
-            except KeyError as e:
-                print(f"Fehler beim Lesen der Daten: {e}")
+                        #append fun and nit value to correct list in result dictionaries
+                        fun_per_hyperparameter_value[c1_c2_value].append(dict[str(j)][fun_key_name]) 
+                        nit_per_hyperparameter_value[c1_c2_value].append(dict[str(j)][nit_key_name])
+                except KeyError as e:
+                    print(f"Fehler beim Lesen der Daten: {e}")
     return fun_per_hyperparameter_value, nit_per_hyperparameter_value
 
 
@@ -209,11 +217,11 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
         if(more_info==True):
             text[par] = ""
             for value in fun_dict.keys():
-                mean = np.mean(fun_dict[value])
+                median = np.median(fun_dict[value])
                 min = np.min(fun_dict[value])
                 max = np.max(fun_dict[value])
                 std = np.std(fun_dict[value])
-                text[par] += f"{par} = {value}: mean={mean},    min={min},  max={max},  std={std}\n"
+                text[par] += f"{par} = {value}: median={median},    min={min},  max={max},  std={std}\n"
         # Boxplot for function values
         file_path = os.path.join(path, f'{opt}_boxplot_fun_{par}.png')
         plt.figure()
@@ -245,6 +253,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
         with open(save_path, 'w') as f:
             f.write(file_text)
 
+#deprecated since all_opts_fun_value_boxplots is deprecated?
 def get_all_fun_values_for_opts(data, opt_list):
     optimizer_data = {}
     for i in range(len(data)):
@@ -264,10 +273,10 @@ def get_all_fun_values_for_opts(data, opt_list):
                 print(f"Fehler beim Lesen der Daten: {e}")
     return optimizer_data
 
+#deprecated?
 def all_opts_fun_value_boxplots(path,json_data, opt_list):
     '''
-        TODO: anpassen, dass man Ergebnisse von allen Experimenten (i.e. alle Optimierer) hat. 
-        TODO: Speicherplatz und Zeit(?) sparen indem man nicht alle json files in einem dictionary speichert
+        deprecated?
     '''
     fun_dict = get_all_fun_values_for_opts(json_data,opt_list)
     # Boxplot for function values
@@ -295,10 +304,10 @@ def create_all_hyperparameter_boxplots():
     # experiment part 1: nelder_mead, bfgs, cobyla, powell, slsqp, sgd, rmsprop, adam
     directory = "experimental_results/results/optimizer_results/experiment_part1"
     opt_list = ["nelder_mead","bfgs","cobyla","powell","slsqp","sgd","rmsprop","adam","dual_annealing"]
-    json_data = load_json_files(directory)
+    json_data = load_json_data(directory)
     # create boxplots for experiment part 1
     for opt in opt_list:
-        save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
+        save_path = f'qnn-experiments/plots/hyperparameter_plots/final_experiment/{opt}'
         create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt],more_info=True)
         print(f"{opt} done")
     #all_opts_fun_value_boxplots(save_path,json_data,opt_list)
@@ -306,26 +315,19 @@ def create_all_hyperparameter_boxplots():
     # experiment part 1: nelder_mead, bfgs, cobyla, powell, slsqp, sgd, rmsprop, adam
     directory = "experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE"
     opt_list = ["genetic_algorithm", "particle_swarm", "diff_evolution"]
-    json_data = load_json_files(directory)
+    json_data = load_json_data(directory)
+    print(len(json_data))
     # create boxplots for experiment part 1
     for opt in opt_list:
-        save_path = f'qnn-experiments/plots/box_plots/hyperparameter_boxplots/{opt}'
+        save_path = f'qnn-experiments/plots/hyperparameter_plots/final_experiment/{opt}'
         create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt[opt],more_info=True)
         print(f"{opt} done")
     del json_data
 
 if __name__ == "__main__":
-    os.chdir("/Users/alina/qnn-experiments")
+    os.chdir("../../")
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
-    opt_list = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
-    directory = "experimental_results/results/optimizer_results/hyperparameter_tests_2024-10-26"
-    # json_data = load_json_files(directory) 
-
-    # for opt in opt_list:
-    #     save_path = f'qnn-experiments/plots/box_plots/preliminary_test/hyperparameters_GA_DE_PSO/{opt}'
-    #     create_hyperparameter_boxplots(save_path,json_data,opt,hyperparameters_per_opt_prelim[opt], prelim=True)
-    #     print(f"{opt} done")
     create_all_hyperparameter_boxplots()
     end = time.time()
     print(f"end time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))}")

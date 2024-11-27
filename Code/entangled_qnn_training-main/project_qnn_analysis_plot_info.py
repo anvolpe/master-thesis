@@ -249,10 +249,8 @@ def get_mean_std_variable_datatype(num_data_points=1):
             if filename.startswith(f"mean_fun_values_None{num_data_points}"):
                 file_path = os.path.join(dir, filename)
                 d = pd.read_csv(file_path).set_index(['data_type', 'num_data_points', 's_rank'])
-                print(d)
                 mean_list[value].append(d)
     mean_df_list = [pd.concat(mean_list[value]) for value in [1,2,3,4]]
-    print(mean_df_list)
 
     print(f"variable datatype, number of datapoints: {num_data_points}")
     std = 0
@@ -278,44 +276,43 @@ def get_delta_non_lin_ind_to_others():
 
     type_list = {1: [], 2: [], 3: [], 4: []}
     delta_list = []
-    print(f"Variable datatype...")
+    print(f"Variable datatype, Schmidt-Rank 1 and 2, number of data points > 1")
     for value in [1,2]:
         dir = path + f"{value}/num_data_points"
         for filename in os.listdir(dir):
             # exclude 1 data point from analysis, since datatype has no effect on 1 datapoint.
             if (filename.startswith("mean_fun_values_None4") or filename.startswith("mean_fun_values_None3") or filename.startswith("mean_fun_values_None2")):
                 file_path = os.path.join(dir, filename)
-                d = pd.read_csv(file_path)
+                d = pd.read_csv(file_path).set_index("data_type")
                 #for each column (optimizer) compute difference of result for other datatypes to non_lin_ind
-                delta_list.append(d.loc["random"]-d.loc["non_lin_ind"])
-    type_df_list = [pd.concat(type_list[i+1]) for i in range(4)]
-    mean_df_list = [pd.concat(mean_list[datatype]).set_index(['data_type', 'num_data_points', 's_rank']) for datatype in datatype_list]
-
-    for i in range(4):
-        print(f"Place {i+1}:")
-        df = type_df_list[i].stack().value_counts(normalize=True) * 100
-        print(df)
-        print("=============")
+                for datatype in ["random", "var_s_rank", "orthogonal"]:
+                    df = (d.loc[datatype]-d.loc["non_lin_ind"])/d.loc["non_lin_ind"] # compute relative difference
+                    delta_list.append(df[opt_titles.keys()])
+    delta_df = pd.concat(delta_list)
+    #mean_df_list = [pd.concat(mean_list[datatype]).set_index(['data_type', 'num_data_points', 's_rank']) for datatype in datatype_list]
+    mean_delta = delta_df.describe()
+    print(mean_delta)
+    
 
 
 if __name__ == "__main__":
     # change current working directory to access correct files
     os.chdir("../../")
 
-    print("Further Convergence Plot info")
-    print("================================= Check Deltas =================================")
-    check_deltas_for("s_rank")
-    check_deltas_for("num_data_points")
+    # print("Further Convergence Plot info")
+    # print("================================= Check Deltas =================================")
+    # check_deltas_for("s_rank")
+    # check_deltas_for("num_data_points")
 
-    print("================================= Tables =================================")
-    get_mean_and_delta_table_info("s_rank")
-    get_mean_and_delta_table_info("num_data_points")
+    # print("================================= Tables =================================")
+    # get_mean_and_delta_table_info("s_rank")
+    # get_mean_and_delta_table_info("num_data_points")
 
-    print("================================= Datatype table =================================")
-    get_datatype_distribution()
+    # print("================================= Datatype table =================================")
+    # get_datatype_distribution()
 
-    print("================================= STD for datatype (ndp=1) =================================")
-    get_mean_std_variable_datatype()
+    # print("================================= STD for datatype (ndp=1) =================================")
+    # get_mean_std_variable_datatype()
 
     print("================================= Delta non_lin_ind to others =================================")
     get_delta_non_lin_ind_to_others()
