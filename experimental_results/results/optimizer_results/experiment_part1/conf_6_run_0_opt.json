@@ -3,13 +3,14 @@
     "conf_id": 6,
     "data_type": "random\n",
     "num_data_points": 1,
-    "s_rank": 0,
+    "s_rank": 2,
     "unitary": "[[-0.56303964-0.00798273j,-0.21670212-0.15784972j,-0.06047197-0.73952673j,-0.01438004+0.24552571j],[-0.06976756+0.23474685j,-0.01275565-0.5435098j,-0.02703657-0.08917885j,-0.08210486-0.79311774j],[-0.38559961+0.10714929j,0.5933431-0.2687392j,-0.24060861+0.29149289j,-0.45147719+0.26241743j],[-0.50180421+0.45931857j,-0.11617175+0.44134496j,0.49642745+0.22684508j,-0.08544628-0.15407063j]]",
     "databatch_0": {
         "databatch": "[[[0.11096773-0.07836851j,-0.19388433+0.09069114j,0.08827422-0.08731563j,0.1920038+0.10781195j],[0.07523734-0.21089263j,-0.17451617+0.34913665j,-0.04069336-0.16236217j,0.29306809-0.20220965j],[0.03763085+0.15366371j,-0.11536663-0.22454734j,-0.07401196-0.02583415j,0.15126961-0.08239015j],[0.23619754-0.05822173j,-0.25955159+0.15063308j,0.08449099+0.24417336j,-0.41708822+0.00241639j]]]",
         "initial param values": "[3.72299766,3.90701198,1.78368661,0.28461202,1.15767073,0.21376244]",
         "nelder_mead": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), fatol (1e-5, 1e-10), and xatol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "fatol": 1e-05,
@@ -681,6 +682,7 @@
         },
         "bfgs": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), gtol (1e-5, 1e-10), xrtol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "gtol": 1e-05,
@@ -1611,6 +1613,7 @@
         },
         "cobyla": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), tol (1e-5, 1e-10) and catol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "tol": 1e-05,
@@ -2336,6 +2339,7 @@
         },
         "powell": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and xtol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -2639,6 +2643,7 @@
         },
         "slsqp": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -2876,6 +2881,7 @@
         },
         "sgd": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -4091,6 +4097,7 @@
         },
         "rmsprop": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -5306,6 +5313,7 @@
         },
         "adam": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -6521,6 +6529,7 @@
         },
         "dual_annealing": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000)",
             "0": {
                 "maxiter": 100,
                 "duration": 1.2237141132354736,
@@ -6584,6 +6593,7 @@
         "initial param values": "[5.06954575,3.01844682,3.91262028,4.3550907,5.81355712,1.06644581]",
         "nelder_mead": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), fatol (1e-5, 1e-10), and xatol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "fatol": 1e-05,
@@ -7135,6 +7145,7 @@
         },
         "bfgs": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), gtol (1e-5, 1e-10), xrtol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "gtol": 1e-05,
@@ -8227,6 +8238,7 @@
         },
         "cobyla": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), tol (1e-5, 1e-10) and catol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "tol": 1e-05,
@@ -8816,6 +8828,7 @@
         },
         "powell": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and xtol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -9173,6 +9186,7 @@
         },
         "slsqp": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -9410,6 +9424,7 @@
         },
         "sgd": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -10625,6 +10640,7 @@
         },
         "rmsprop": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -11840,6 +11856,7 @@
         },
         "adam": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -13055,6 +13072,7 @@
         },
         "dual_annealing": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000)",
             "0": {
                 "maxiter": 100,
                 "duration": 1.2119874954223633,
@@ -13124,6 +13142,7 @@
         "initial param values": "[4.36132191,5.1390847,0.82456515,0.03992567,3.51199074,6.10117858]",
         "nelder_mead": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), fatol (1e-5, 1e-10), and xatol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "fatol": 1e-05,
@@ -13833,6 +13852,7 @@
         },
         "bfgs": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), gtol (1e-5, 1e-10), xrtol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "gtol": 1e-05,
@@ -15006,6 +15026,7 @@
         },
         "cobyla": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), tol (1e-5, 1e-10) and catol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "tol": 1e-05,
@@ -15691,6 +15712,7 @@
         },
         "powell": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and xtol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -16153,6 +16175,7 @@
         },
         "slsqp": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -16396,6 +16419,7 @@
         },
         "sgd": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -17611,6 +17635,7 @@
         },
         "rmsprop": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -18826,6 +18851,7 @@
         },
         "adam": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -20041,6 +20067,7 @@
         },
         "dual_annealing": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000)",
             "0": {
                 "maxiter": 100,
                 "duration": 1.2449300289154053,
@@ -20107,6 +20134,7 @@
         "initial param values": "[0.03292788,2.67139141,5.86551125,3.44388695,2.79585891,5.82793367]",
         "nelder_mead": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), fatol (1e-5, 1e-10), and xatol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "fatol": 1e-05,
@@ -20942,6 +20970,7 @@
         },
         "bfgs": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), gtol (1e-5, 1e-10), xrtol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "gtol": 1e-05,
@@ -22325,6 +22354,7 @@
         },
         "cobyla": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), tol (1e-5, 1e-10) and catol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "tol": 1e-05,
@@ -23160,6 +23190,7 @@
         },
         "powell": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and xtol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -23493,6 +23524,7 @@
         },
         "slsqp": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -23748,6 +23780,7 @@
         },
         "sgd": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -24963,6 +24996,7 @@
         },
         "rmsprop": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -26178,6 +26212,7 @@
         },
         "adam": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -27393,6 +27428,7 @@
         },
         "dual_annealing": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000)",
             "0": {
                 "maxiter": 100,
                 "duration": 1.3213584423065186,
@@ -27455,6 +27491,7 @@
         "initial param values": "[1.34693918,4.63836344,2.04607737,1.60287576,4.67385846,1.71199344]",
         "nelder_mead": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), fatol (1e-5, 1e-10), and xatol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "fatol": 1e-05,
@@ -28080,6 +28117,7 @@
         },
         "bfgs": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), gtol (1e-5, 1e-10), xrtol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "gtol": 1e-05,
@@ -29289,6 +29327,7 @@
         },
         "cobyla": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), tol (1e-5, 1e-10) and catol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "tol": 1e-05,
@@ -30124,6 +30163,7 @@
         },
         "powell": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and xtol (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -30511,6 +30551,7 @@
         },
         "slsqp": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "ftol": 1e-05,
@@ -30754,6 +30795,7 @@
         },
         "sgd": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -31969,6 +32011,7 @@
         },
         "rmsprop": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -33184,6 +33227,7 @@
         },
         "adam": {
             "type": "gradient",
+            "variable hyperparams": "maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)",
             "0": {
                 "maxiter": 100,
                 "learning_rate": 0.01,
@@ -34399,6 +34443,7 @@
         },
         "dual_annealing": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000)",
             "0": {
                 "maxiter": 100,
                 "duration": 1.2246801853179932,

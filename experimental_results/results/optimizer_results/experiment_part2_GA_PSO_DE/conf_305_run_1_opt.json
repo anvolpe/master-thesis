@@ -10,6 +10,7 @@
         "initial param values": "[2.07307598,2.84180808,2.53328053,4.60437654,5.38747396,1.09296495]",
         "genetic_algorithm": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered), stop_criteria (None, saturate_50)",
             "0": {
                 "maxiter": 50,
                 "duration": 0.23421454429626465,
@@ -5584,7 +5585,8 @@
             }
         },
         "particle_swarm": {
-            "hyperparameters": "max_iter: [100, 500, 1000], n_particles (swarm size): [60], w (inertia): [0.9], [c1,c2] (cognitive and social parameter): [[0.5, 2]].",
+            "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), ftol (1e-5, -np.Infinity)",
             "0": {
                 "maxiter": 100,
                 "duration": 2.6735479831695557,
@@ -7604,6 +7606,7 @@
         },
         "diff_evolution": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000)",
             "0": {
                 "maxiter": 100,
                 "recombination": 0.8,
@@ -7675,6 +7678,7 @@
         "initial param values": "[1.27054101,1.81067358,3.64442929,5.61528762,3.58736641,0.61681248]",
         "genetic_algorithm": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered), stop_criteria (None, saturate_50)",
             "0": {
                 "maxiter": 50,
                 "duration": 0.20309996604919434,
@@ -13329,7 +13333,8 @@
             }
         },
         "particle_swarm": {
-            "hyperparameters": "max_iter: [100, 500, 1000], n_particles (swarm size): [60], w (inertia): [0.9], [c1,c2] (cognitive and social parameter): [[0.5, 2]].",
+            "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), ftol (1e-5, -np.Infinity)",
             "0": {
                 "maxiter": 100,
                 "duration": 3.1435506343841553,
@@ -15368,6 +15373,7 @@
         },
         "diff_evolution": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000)",
             "0": {
                 "maxiter": 100,
                 "recombination": 0.8,
@@ -15441,6 +15447,7 @@
         "initial param values": "[5.85582312,2.27269691,0.13108214,2.41226804,5.7898191,3.37895354]",
         "genetic_algorithm": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered), stop_criteria (None, saturate_50)",
             "0": {
                 "maxiter": 50,
                 "duration": 0.2031264305114746,
@@ -21303,7 +21310,8 @@
             }
         },
         "particle_swarm": {
-            "hyperparameters": "max_iter: [100, 500, 1000], n_particles (swarm size): [60], w (inertia): [0.9], [c1,c2] (cognitive and social parameter): [[0.5, 2]].",
+            "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), ftol (1e-5, -np.Infinity)",
             "0": {
                 "maxiter": 100,
                 "duration": 2.830521821975708,
@@ -23403,6 +23411,7 @@
         },
         "diff_evolution": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000)",
             "0": {
                 "maxiter": 100,
                 "recombination": 0.8,
@@ -23473,6 +23482,7 @@
         "initial param values": "[0.542494,5.10380217,4.79072341,2.51618897,1.36167448,1.44352316]",
         "genetic_algorithm": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered), stop_criteria (None, saturate_50)",
             "0": {
                 "maxiter": 50,
                 "duration": 0.21872615814208984,
@@ -29020,7 +29030,8 @@
             }
         },
         "particle_swarm": {
-            "hyperparameters": "max_iter: [100, 500, 1000], n_particles (swarm size): [60], w (inertia): [0.9], [c1,c2] (cognitive and social parameter): [[0.5, 2]].",
+            "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), ftol (1e-5, -np.Infinity)",
             "0": {
                 "maxiter": 100,
                 "duration": 2.2507991790771484,
@@ -31035,6 +31046,7 @@
         },
         "diff_evolution": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000)",
             "0": {
                 "maxiter": 100,
                 "recombination": 0.8,
@@ -31109,6 +31121,7 @@
         "initial param values": "[0.69450349,5.60370993,6.07908649,2.13375794,0.98717854,6.0021232]",
         "genetic_algorithm": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered), stop_criteria (None, saturate_50)",
             "0": {
                 "maxiter": 50,
                 "duration": 0.2031264305114746,
@@ -36829,7 +36842,8 @@
             }
         },
         "particle_swarm": {
-            "hyperparameters": "max_iter: [100, 500, 1000], n_particles (swarm size): [60], w (inertia): [0.9], [c1,c2] (cognitive and social parameter): [[0.5, 2]].",
+            "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000), ftol (1e-5, -np.Infinity)",
             "0": {
                 "maxiter": 100,
                 "duration": 3.2988762855529785,
@@ -38909,6 +38923,7 @@
         },
         "diff_evolution": {
             "type": "gradient-free",
+            "variable hyperparams": "maxiter (100, 500, 1000)",
             "0": {
                 "maxiter": 100,
                 "recombination": 0.8,

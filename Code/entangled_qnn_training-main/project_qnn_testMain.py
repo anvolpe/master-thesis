@@ -1,4 +1,5 @@
 import itertools
+import json
 import multiprocessing
 import time
 from datetime import datetime
@@ -24,199 +25,20 @@ opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD',
               'genetic_algorithm':'Genetic Algorithm', 'particle_swarm': 'Particle Swarm Optimization',
               'diff_evolution':'Differential Evolution'}
 
-#LÖSCHEN?
+opt_info = {"nelder_mead": "maxiter (100, 500, 1000), fatol (1e-5, 1e-10), and xatol (1e-5, 1e-10)", 
+            "powell": "maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and xtol (1e-5, 1e-10)", 
+            "sgd":"maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)", 
+              "adam":"maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)", 
+              "rmsprop":"maxiter (50, 100, 1000), learning_rate (0.01, 0.001, 0.0001) and eps (1e-5, 1e-10)", 
+              "bfgs":"maxiter (50, 100, 1000), gtol (1e-5, 1e-10), xrtol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
+              "slsqp":"maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
+              "dual_annealing":"maxiter (50, 100, 1000)",
+              "cobyla":"maxiter (50, 100, 1000), tol (1e-5, 1e-10) and catol (1e-5, 1e-10)",
+              "genetic_algorithm":"maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered), stop_criteria (None, saturate_50)", 
+              "particle_swarm": "maxiter (100, 500, 1000), ftol (1e-5, -np.Infinity)",
+              "diff_evolution":"maxiter (100, 500, 1000)"}
 
-'''
-def generate_and_save_testLandscape():
-    print("####### Generate and Save test landscape")
-    num_layers = 1
-    num_qubits = 2
-    #num_unitaries = 1 # was 5
-    #num_tries = 1 # was 5
-    grid_size = 16
-    dimensions = 6 # geht nicht: alles außer 6
-    type_of_data = 1 # random data
-    deg_of_entanglement = 4 # low, (high = 4)
-    num_data_points = 1 # low
-
-    # generate an experiment id (based on time) to identify which results and configs belong to which experiment run
-    current_time = datetime.now()
-    exp_id = (
-        str(grid_size)
-        + "_"
-        + str(dimensions)
-        + "_"
-        + str(current_time.month)
-        + "_"
-        + str(current_time.day)
-        + "_"
-        + str(current_time.hour)
-        + "_"
-        + str(current_time.minute)
-        + "_"
-        + str(current_time.second)
-    )
-    # create directories for results and configs
-
-    #os.makedirs("experimental_results/configs", exist_ok=True)
-    #os.makedirs("experimental_results/results", exist_ok=True)
-    # generate a U3 ansatz containing 2 layers -> 6 params
-    qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
-    #unitaries = []
-    # [type_of_data][num_data_points][deg_of_entanglement][id_unitary][id_try]
-    #configurations = []
-    
-    # generate a random unitary with num_qubits qubits (why are they the same?)
-    unitary = torch.tensor(
-            np.array(random_unitary_matrix(num_qubits)),
-            dtype=torch.complex128,
-            device="cpu",
-        )
-    data_points = generate_data_points(
-        type_of_data,
-        deg_of_entanglement,
-        num_data_points,
-        unitary, num_qubits
-    )
-    print(data_points.shape)
-    #start = time.time()
-    # generate configurations (5 datapoint sets = 5 runs per config)
-    conf_id = 0
-
-    TV_arr = []
-    FD_arr = []
-    IGSD_arr = []
-    SC_metrics = []
-    start = time.time()
-    landscape = generate_loss_landscape(grid_size, dimensions, data_points, unitary, qnn)
-    t = time.time()-start
-    print("time [generate loss landscape] (sec): ", np.round(t,2))
-    start = time.time()
-    TV_arr.append(calc_total_variation(landscape))
-    FD_arr.append(calc_fourier_density(landscape))
-    IGSD_arr.append(calc_IGSD(landscape))
-    SC = calc_scalar_curvature(landscape)
-    SC_metrics.append(process_sc_metrics(SC))
-    t = time.time()-start
-    print("time [calc metrics] (sec): ", np.round(t,2))
-    del SC
-    # save landscape as JSON file
-    os.makedirs("experimental_results/landscapes", exist_ok=True)
-    start = time.time()
-    np.savez_compressed("experimental_results/landscapes/testLandscape.npz", np.array(grid_size),landscape)
-    t = time.time()-start
-    print("time [write npz file] (sec): ", np.round(t,2))
-
-    gc.collect() # garbage collector
-        
-    metrics = []
-    metrics.append(TV_arr)
-    metrics.append(FD_arr)
-    metrics.append(IGSD_arr)
-    metrics.append(SC_metrics)
-    process_and_store_metrics(metrics, 1, conf_id, exp_id)
-    # TODO: speichern: Optimierer, Zeiten, Spezifikation
-    now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    print(f"[{now}] Finished run: {conf_id}")
-
-def run_single_optimizer_experiment():
-    # TODO: def objective basierend auf landscape
-    # TODO: optimize.minimize(...) Aufruf für einen Optimierer + Options (Spezifikationen)
-    # TODO: Zeit messen + Zeit speichern
-
-    # load test loss landscape from npz file (67mb)
-    start = time.time()
-    landscapeZ = np.load("experimental_results/landscapes/testLandscape.npz") # falls 
-    grid_size = landscapeZ['arr_0']
-    landscape = landscapeZ['arr_1']
-    t = time.time()-start
-    print("time [load npz file] (sec): ", np.round(t,2))
-
-    # define objective basd on loss landscape and grid_size
-    # input x: is a 1D array with 6 values (since: 6 parameters)
-    # output: corresponding loss 
-    def objective(x):
-        
-            objective to minimize based on loss landscape
-
-            Args:
-                x (1D array): is a 1D array with 6 values (since: 6 parameters)
-            Returns:
-                float: corresponding loss 
-        
-        obj_value = 0
-
-        # TODO: Index mithilfe von x und grid_size berechnen
-        idx = 0,0,0,0,0,0
-        obj_value = landscape[idx]
-        return obj_value
-    print(objective([1,0,5,5,0,0]))
-    #[0][0][0][0][0][0]
-    print(landscape.shape)
-
-def optimizer_experiment():
-    num_layers = 1
-    num_qubits = 2
-    #num_unitaries = 1 # was 5
-    #num_tries = 1 # was 5
-    #grid_size = 16
-    dimensions = 6 # geht nicht: alles außer 6
-    type_of_data = 1 # random data
-    deg_of_entanglement = 4 # high, (low = 1)
-    num_data_points = 1 # low
-
-    qnn = CudaPennylane(num_wires=num_qubits, num_layers=num_layers, device="cpu") 
-    
-    # generate a random unitary with num_qubits qubits (why are they the same?)
-    unitary = torch.tensor(
-            np.array(random_unitary_matrix(num_qubits)),
-            dtype=torch.complex128,
-            device="cpu",
-        )
-    data_points = generate_data_points(
-        type_of_data,
-        deg_of_entanglement,
-        num_data_points,
-        unitary, num_qubits
-    )
-    print(data_points.shape)
-    print(data_points)
-    expected_output = torch.matmul(unitary, data_points)
-    y_true = expected_output.conj()
-    
-    def objective(x):
-        qnn.params = torch.tensor(x, dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
-        cost = cost_func(data_points, y_true, qnn, device="cpu") 
-        return cost.item()
-    
-    optimizers = ['COBYLA', 'BFGS', 'Nelder-Mead', 'Powell', 'SLSQP']
-    results = {}
-    initial_param_values = np.random.uniform(-np.pi, np.pi, size=dimensions)
-    bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
-    for opt in optimizers:
-        start = time.time()
-        res = minimize(objective, initial_param_values, method=opt,
-                       options={"maxiter": 100, "bounds": bounds})
-        duration = time.time() - start
-        results[opt] = {'result': res, 'duration': duration}
-        print(f"Optimizer: {opt}")
-        print(res)
-        print(f"Duration: {duration}s\n")
-
-    print("Results:", results)
-
-    with open('experimental_results/results/optimization_results.csv', mode='w') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Optimizer", "Result", "Duration"])
-
-        for opt, result in results.items():
-            writer.writerow([opt, result['result'], result['duration']])
-
-def testMinimizeBounds():
-    x0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-    bounds = list(zip(np.zeros(5), np.ones(6)*2))
-    res = minimize(rosen, x0, method='BFGS', jac=rosen_der, bounds=bounds, options={'gtol': 1e-6, 'disp': True})'''
-
+db_list = [f"databatch_{i}" for i in range(0,5)]
 def func1():
     time.sleep(3)
     print("done with func1")
@@ -304,55 +126,92 @@ def pso_test():
                 run_n += 1
     print(results)
 
+def change_s_rank(directory):
+    '''
+        Corrects Schmidt Rank in a JSON file depending on its config id. 
+    '''
+    for filename in os.listdir(directory):
+        if filename.endswith('.json'):
+            file_path = os.path.join(directory, filename)
+            #print(f"Lade Datei: {file_path}")
+            data = []
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+                id = int(data["conf_id"])
+                s_rank = int((id % 20)/5)+1
+                data["s_rank"] = s_rank
+
+            with open(file_path, 'w') as file: 
+                json.dump(data, file, indent=4)
+            del data
+
+def add_opt_info(directory):
+    '''
+        Corrects Schmidt Rank in a JSON file depending on its config id. 
+    '''
+    for filename in os.listdir(directory):
+        if filename.endswith('.json'):
+            file_path = os.path.join(directory, filename)
+            #print(f"Lade Datei: {file_path}")
+            data = []
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+            for databatch in db_list:
+                for opt in opt_titles.keys():
+                    try:
+                        d = data[databatch][opt]
+                        new_d = {"type": d.pop("type"), "variable hyperparams": opt_info[opt], **d}
+                        data[databatch][opt] = new_d
+                        del d
+                        del new_d
+                    except KeyError as e:
+                        #continue
+                        print(f"Schlüssel fehlt: {e}")
+
+            with open(file_path, 'w') as file: 
+                json.dump(data, file, indent=4)
+            del data
+
+def change_pso_json(directory):
+    '''
+        Corrects Schmidt Rank in a JSON file depending on its config id. 
+    '''
+    for filename in os.listdir(directory):
+        if filename.endswith('.json'):
+            file_path = os.path.join(directory, filename)
+            #print(f"Lade Datei: {file_path}")
+            data = []
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+            print(data["conf_id"])
+            for databatch in db_list:
+                try:
+                    opt = "particle_swarm"
+                    d = data[databatch][opt]
+                    d.pop("hyperparameters")
+                    new_d = {"type": "gradient-free", "variable hyperparams": opt_info[opt], **d}
+                    data[databatch][opt] = new_d
+                    del d
+                    del new_d
+                except KeyError as e:
+                    #continue
+                    print(f"Schlüssel fehlt: {e}")
+
+            with open(file_path, 'w') as file: 
+                json.dump(data, file, indent=4)
+            del data
+
 if __name__ == "__main__":
-
-    m = {"nelder_mead": [1, 2, 34, 5], "adam": [3, 4, 5, 1], "rmsprop": [1, 3, 4, 6]}
-    opts = ["nelder_mead", "rmsprop", "adam"]
-    conf_ids = [1, 3]
-    row = [np.mean([m[opt][i] for i in conf_ids]) for opt in opts]
-    print(row)
-    print([3.5, 4.5, 2.5])
-
-
-    # check that only one parameter (data_type, num_data_points, s_rank) is None:
-    param_values = {'data_type': ["random", "orthogonal", "var_s_rank", "non_lin_ind"], 'num_data_points': ["1","2","3","4"], 's_rank': ["1","2","3","4"]}
-    param_names = ['data_type', 'num_data_points', 's_rank']
-    params = [None, "3", "1"]
-    not_none_indices = [i for i in range(len(params)) if params[i] != None]
-    print(not_none_indices)
-    if(len(not_none_indices) != 2):
-        raise Exception('Exactly one parameter of data_type, num_data_points and s_rank must be None')
-    
-    # determine the non-variable parameter
-    none_param = [param_names[i] for i in not_none_indices]
-    print(none_param)
-
-    # fill dataframe with random numbers
-    mean_fun_values = pd.DataFrame(columns=["data_type", "s_rank", "num_data_points"]+list(opt_titles.keys()))
-    index = ['data_type', 'num_data_points', 's_rank']
-    temp = np.random.default_rng().random(size=(64, 12))
-    arrays = [param_values['data_type'], param_values['s_rank'], param_values['num_data_points']]
-    tuples = list(itertools.product(*arrays))
-    index = pd.MultiIndex.from_tuples(tuples, names=["data_type", "s_rank", "num_data_points"])
-    mean_fun_values = pd.DataFrame(np.random.randn(64,12), index=index,columns=opt_titles.keys())          
-    #print(mean_fun_values)
-    none_index = [i for i in range(len(params)) if params[i] == None]
-    var_param = param_names[none_index[0]]
-
-    # determine the non-variable parameters
-    param0 = param_names[not_none_indices[0]]
-    param1 = param_names[not_none_indices[1]]
-    values = {"data_type":None, "num_data_points": "3", "s_rank":"1"}
-    print(f"{param0}=={values[param0]} and {param1}=={values[param1]}")
-    m0 = mean_fun_values.index.get_level_values(param0) == values[param0]
-    m1 = mean_fun_values.index.get_level_values(param1) == values[param1]
-    df = mean_fun_values[m0 & m1]
-    print(df)
-    df1 = (df.reset_index().drop([param0, param1], axis=1).set_index([var_param])
-           .apply(lambda x: x.index[x.argsort()])
-           .reset_index(drop=True)
-           )
-    print(df1)
+    os.chdir("../../")
+    directory = "experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE"
+    #directory = "experimental_results/results/optimizer_results"
+    change_s_rank(directory)
+    print("s_rank done")
+    add_opt_info(directory)
+    print("add opt info done")
+    change_pso_json(directory)
+    print("pso done")    
+    #print(db_list)
 
 
    
