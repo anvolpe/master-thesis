@@ -331,7 +331,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
         plt.ylabel('Function value',fontsize=28)
         plt.title(f"Achieved loss function values per values of \n {par} for {opt_titles[opt]}",fontsize=30)
         plt.grid(True)
-        plt.savefig(file_path)
+        plt.savefig(file_path, dpi=1200)
         plt.close()
 
 
@@ -348,7 +348,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
             title += ", maxiter=1000"
         plt.title(title,fontsize=28)
         plt.grid(True)
-        plt.savefig(file_path)
+        plt.savefig(file_path,dpi=1200)
         plt.close()
 
     if(more_info==True):

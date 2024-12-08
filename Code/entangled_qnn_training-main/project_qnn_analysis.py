@@ -637,7 +637,7 @@ def create_min_max_boxplots(res_min, res_max, save_path):
         plt.title(f"Minimal and Maximal x-Values for bounds: {bounds[bounds_id]}",fontsize=30)
         plt.grid(True)
         file_path = os.path.join(save_path, f'{bounds_id}_boxplot_no_outliers.png')
-        plt.savefig(file_path)
+        plt.savefig(file_path, dpi=1200)
         plt.close()
 #???
 def extract_optimizer_data(json_data,use_nits=True):
@@ -797,7 +797,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         plt.title(title,fontsize=30)
     plt.grid(True)
     file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png') # TODO: better naming system
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=1200)
     plt.close()
 
 def calc_convergence_data(datatype, num_data_points, s_rank):
@@ -992,7 +992,7 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
     plt.grid(True)
     plt.tight_layout()
     file_path = os.path.join(boxplot_save_path, title+'_bps.png')
-    fig.savefig(file_path)
+    fig.savefig(file_path, dpi=1200)
     '''
     num=1
     outdict={}
