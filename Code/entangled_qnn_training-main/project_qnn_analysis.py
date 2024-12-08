@@ -70,6 +70,11 @@ def calc_mean_fun_nit_callback_values_per_config(opt_list, directory, max_iter=1
             max_nit_values_per_config: keys are optimizers, values are a list (320 entries, one per config_id)
             mean_callback_values_per_config: dictionary of dictionaries. Key on level 1: optimizers, 
                 Key on level 2: config_id (integer), values: list (callback values)
+        
+        Arguments:
+            opt_list (list of functions): list of functions, as defined in project_qnn_experiments_optimizers.py
+            directory (String): source directory for json files
+            maxiter (int, optiona): can be 100, 500 or 1000
     '''
 
     all_data = load_json_data(directory)
@@ -151,6 +156,9 @@ def fill_mean_fun_values():
 
         Prerequisite:
             mean_fun_values_per_config is filled.
+
+        Returns
+            mean_fun_values
     '''
     if len(mean_fun_values_per_config)==0:
         raise Exception("Data has not been extracted from json files. Execute extract_all_data_from_json_files() and try again.")
@@ -186,6 +194,16 @@ def order_of_parameter_values(datatype, num_data_points, s_rank, save_path):
 
         Prerequisite:
             mean_fun_values is not empty
+            exactly one of datatype, num_data_points and s_rank is None
+        
+        Arguments:
+            datatype (String): data type of training data points ('random', 'orthogonal', 'non_lin_ind', 'var_s_rank' or None)
+            num_data_points (String): number of training data points (1, 2, 3 or 4 or None)
+            s_rank (String): Schmidt Rank of training data (1, 2, 3 or 4 or None)
+            save_path (String): file path for csv file
+        
+        returns:
+            content of csv file as Panda Dataframe
     '''
     # create correct directory if it doesn't exist
     if not os.path.exists(save_path):
@@ -228,6 +246,12 @@ def best_opt_per_param_combination(save_path):
 
         Prerequisite:
             mean_fun_values is not empty
+        
+        Arguments:
+            save_path (String): file path for csv files
+        
+        Returns:
+            contents of csv files as Pandas Dataframes
     '''
     if len(mean_fun_values)==0:
         raise Exception("Data has not been extracted from json files. Execute extract_all_data_from_json_files() and try again.")
@@ -264,6 +288,17 @@ def compute_deltas(datatype, num_data_points, s_rank, save_path):
 
         Prerequisite:
             mean_fun_values is not empty
+            exactly one of datatype, num_data_points and s_rank is None
+
+        Arguments:
+            datatype (String): data type of training data points ('random', 'orthogonal', 'non_lin_ind', 'var_s_rank' or None)
+            num_data_points (String): number of training data points (1, 2, 3 or 4 or None)
+            s_rank (String): Schmidt Rank of training data (1, 2, 3 or 4 or None)
+            save_path (String): file path for csv file
+        
+        returns:
+            content of csv files as Panda Dataframes      
+        
     '''
     # create correct directory if it doesn't exist
     if not os.path.exists(save_path):
@@ -358,11 +393,16 @@ def compute_convergence_plot_information():
 
 def get_conf_ids(data_type, num_data_points, s_rank,every_fifth_config=False):
     '''
-        Returns a list of config ids that correspond to data_type, num_data_points and s_rank.
-        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
-        num_data_points (String): 1,2,3,4
-        s_rank (String): 1,2,3,4
-        every_fifth_config (bool): true, if there are only json files for every fifth config (used for testing purposes). Default: false
+        Returns a list of config ids that correspond to the combination of values for data_type, num_data_points and s_rank.
+        
+        Arguments:
+            datatype (String): data type of training data points ('random', 'orthogonal', 'non_lin_ind', 'var_s_rank')
+            num_data_points (String): number of training data points (1, 2, 3 or 4)
+            s_rank (String): Schmidt Rank of training data (1, 2, 3 or 4)
+            every_fifth_config (bool): true, if there are only json files for every fifth config (used for testing purposes). Default: false
+
+        Returns:
+            conf_id_list (list of int): list of corresponding config_ids
     '''
     # use to determine which conf_ids should be added to list (every single one or every fifth)
     mod = 1
@@ -382,8 +422,15 @@ def get_conf_ids(data_type, num_data_points, s_rank,every_fifth_config=False):
     return(conf_id_list)
 
 def get_conf_ids_forParam(distinctionParam, paramValue):
-    '''adds all configs that match with a specified parameter Value for all other parameters staying unspecified
-        -->data_type, num_data_points, s_rank
+    '''
+        Adds all configs that match with a specified parameter Value for all other parameters staying unspecified
+        
+        Arguments:
+            disctionctionParam (String): one of data_type, num_data_points, s_rank
+            paramValue (String): value of distinctionParam
+        
+        Returns:
+            conf_id_list (list of int): list of corresponding config_ids
     '''
     
     data = []
@@ -401,12 +448,16 @@ def get_conf_ids_forParam(distinctionParam, paramValue):
 
 def load_json_data(directory, conf_id_list=range(0,320)):
     '''
-        Load Json-data for each config_id in conf_id_list from files saved in directory.
+        Load JSON-data for each config_id in conf_id_list from files saved in directory.
         File names start with "conf_{config_id}_" and end with ".json".
         Default conf_id_list is all configs, i.e. 0 to 319.
 
+        Arguments:
+            directory (String): source directory for JSON files
+            conf_id_list (list of int, optional): list of config_ids 
+
         Returns:
-            all_data: dict where keys are ids and values are a list of all json-files loaded as dictionaries.
+            all_data (dict): dict where keys are ids and values are a list of all corresponding json-files loaded as dictionaries.
     '''
     all_data = {}
     for id in conf_id_list:
@@ -423,26 +474,6 @@ def load_json_data(directory, conf_id_list=range(0,320)):
         if not all_data:
             print("Keine JSON-Dateien gefunden oder alle Dateien sind fehlerhaft.")
     return all_data
-#???
-def config_ids_must_be_skipped(data_type,num_data_points,s_rank, value):
-    ''' 
-        Returns true if for this combination of data_type, number of data points and s_rank the original configurations were faulty 
-        (i.e. trainingsdata does not have norm 1) TODO: stimmt das???
-        Combinations to be skipped are: data_type = non_lin_ind, s_rank = 3, num_data_points in [2,3,4]
-        One of data_type, num_data_points and s_rank is None and the None-parameter has the specified value.
-        Return:
-            true if this combination of parameters needs to be skipped. False otherwise
-    '''
-    params = [data_type, num_data_points, s_rank]
-    none_indices = [i for i in range(len(params)) if params[i] == None]
-    if(len(none_indices)>1):
-        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
-    params[none_indices[0]] = value
-    if(params in combinations_to_skip):
-        print(params)
-        return True
-    else:
-        return False
 
 ########## Boxplots Plots for bounds testing ##########
 #???
@@ -455,9 +486,7 @@ def extract_solution_fun_data(json_data):
     optimizers = gradient_based + gradient_free
     bounds_batches = ["bounds_0", "bounds_1", "bounds_2", "bounds_3", "bounds_4"]
     databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
-    optimizer_data = {}
-    #gradient_based_data = []
-    #gradient_free_data = []
+
 
     # prepare results dict
     # bounds_i : opt_1 : [(x_min1, x_max1), (x_min2, x_max2),...], opt_2 : ...
@@ -497,12 +526,14 @@ def extract_solution_fun_data(json_data):
                 print(f'Optimierer existiert für diese bounds nicht.')
     
     return res_min, res_max, res_min_max   
-
+#???
 def extract_solution_x_data(json_data):
     '''
         Extract mean x_min and x_max value for every optimizer for every bound for one config.
         Needed for create_min_max_boxplots
-
+        
+        Arguments:
+            json_data (dict): Dictionary containing all data from json files, first level keys are config_ids
         Returns:
             res_min (dict): all smallest solution x-values per optimizer and bounds value
             res_max (dict): all largest solution x-values per optimizer and bounds value
@@ -557,6 +588,11 @@ def create_min_max_boxplots(res_min, res_max, save_path):
     '''
         Creates several boxplot where minimal and maximal solution x-values are plotted per optimizer. One plot per bounds value.
         Save path for plots: savepath+'{bounds_id}_boxplot_no_outliers.png'
+
+        Arguments:
+            res_min (dict): first level keys are values for bounds ("bounds_0", "bounds_1", ..., "bounds_4") and values are list of lowest function values
+            res_max (dict): first level keys are values for bounds ("bounds_0", "bounds_1", ..., "bounds_4") and values are list of highest function values
+            save_path (String): save path for plots
     '''
     bounds = {"bounds_0": "No Bounds", "bounds_1": r"$[0, 2\pi]$", "bounds_2": r"$[0, 4\pi]$", "bounds_3": r"$[-2\pi, 2\pi]$", "bounds_4": r"$[-4\pi, 4\pi]$"}
     bounds_limits = {"bounds_1": [0, 2*np.pi], "bounds_2": [0, 4*np.pi], "bounds_3": [-2*np.pi, 2*np.pi], "bounds_4": [-4*np.pi, 4*np.pi]}
@@ -564,7 +600,7 @@ def create_min_max_boxplots(res_min, res_max, save_path):
         os.makedirs(save_path)
 
     for bounds_id in bounds.keys():
-        plt.figure(figsize=(10,10))
+        plt.figure(figsize=(12.8,9.6))
         # plot vertical grey lines of bounds, for "no bounds" plot [0, 2*pi]
         if(bounds_id in bounds_limits.keys()):
             interval = bounds_limits[bounds_id]
@@ -577,18 +613,28 @@ def create_min_max_boxplots(res_min, res_max, save_path):
         data_min = res_min[bounds_id]
         data_max = res_max[bounds_id]
         x = np.array([(i+1)*1000 for i in range(len(data_min.keys()))])
-        plt.boxplot(data_min.values(), sym="", patch_artist=True, boxprops=dict(facecolor='darkseagreen',hatch='oo'), vert=False,positions=x-100,widths=200)
-        plt.boxplot(data_max.values(), sym="", patch_artist=True, boxprops=dict(facecolor='skyblue',hatch='//'), vert=False,positions=x+100,widths=200)
+        # adapt colors
+        c1 = list(matplotlib.colors.to_rgba("darkseagreen"))
+        c1[3] = 0.5 # make more transparent
+        c1 = tuple(c1)
+        c2 = list(matplotlib.colors.to_rgba("skyblue"))
+        c2[3] = 0.5 # make more transparent
+        c2 = tuple(c2)
+        plt.boxplot(data_min.values(), sym="", patch_artist=True, boxprops=dict(facecolor=c1,hatch='oo'), medianprops=dict(linewidth=2), vert=False,positions=x-100,widths=200)
+        plt.boxplot(data_max.values(), sym="", patch_artist=True, boxprops=dict(facecolor=c2,hatch='//'), medianprops=dict(linewidth=2), vert=False,positions=x+100,widths=200)
         
         # legend
-        dg_patch = matplotlib.patches.Patch(facecolor='darkseagreen',hatch='o', label='minimal x values')
-        blue_patch = matplotlib.patches.Patch(facecolor='skyblue',hatch=r'//', label='maximal x values')
-        plt.legend(handles=[dg_patch,blue_patch], labelspacing=1, handlelength=2) 
-
-        plt.yticks(ticks=x,labels=data_min.keys())
-        plt.ylabel('Optimizer')
-        plt.xlabel('Minimal (lower) and maximal (upper) x-values')
-        plt.title(f"Minimal and Maximal x-Values for bounds: {bounds[bounds_id]}",fontsize='xx-large')
+        dg_patch = matplotlib.patches.Patch(facecolor=c1,hatch='o', label='minimal x values')
+        blue_patch = matplotlib.patches.Patch(facecolor=c2,hatch=r'//', label='maximal x values')
+        plt.legend(handles=[dg_patch,blue_patch], labelspacing=1, handlelength=2, fontsize=18) 
+        plt.xticks(fontsize=18)
+        if(bounds_id == "bounds_0"):
+            plt.yticks(ticks=x,labels=data_min.keys(),fontsize=16)
+        else:
+            plt.yticks(ticks=x,labels=data_min.keys(),fontsize=14)
+        plt.ylabel('Optimizer',fontsize=28)
+        plt.xlabel('Minimal (lower) and maximal (upper) x-values',fontsize=28)
+        plt.title(f"Minimal and Maximal x-Values for bounds: {bounds[bounds_id]}",fontsize=30)
         plt.grid(True)
         file_path = os.path.join(save_path, f'{bounds_id}_boxplot_no_outliers.png')
         plt.savefig(file_path)
@@ -711,16 +757,18 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         title += f'learning rate = {learning_rate},'
     title += '\n'
     param_titles = {'data_type': "Data Type", 'num_data_points': "Number of Data Points", 's_rank': "Schmidt Rank"}
+    j=0
     for i in range(0,3):
         if i not in none_indices:
             title += f"{param_titles[param_names[i]]}: {params[i]}"
-            if i < 2:
+            j+=1
+            if j < 2:
                 title += ", "
     
     #colors for each config id
     #cmap = matplotlib.colormaps["tab10"]
     cmap = ['skyblue', 'darkseagreen', 'green', 'grey']
-    plt.figure()
+    plt.figure(figsize=(12.8,9.6))
     c = 0 # needed to determine correct color
     for param_value in mean_fun_data.keys():
         #color = cmap(c/4) #use when loading a colormap from matplotplib
@@ -738,10 +786,15 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         plt.plot(x,y, color=color, label=label)
         c += 1
     plt.ylim(0,1)
-    plt.xlabel('Iteration')
-    plt.ylabel('Function value')
-    plt.legend()
-    plt.title(title)
+    plt.xlabel('Iteration',fontsize=28)
+    plt.ylabel('Function value',fontsize=28)
+    plt.xticks(fontsize=22)
+    plt.yticks(fontsize=22)
+    plt.legend(fontsize=22)
+    if(opt in ['sgd', 'adam', 'rmsprop'] and learning_rate is not None):
+        plt.title(title,fontsize=26)
+    else:
+        plt.title(title,fontsize=30)
     plt.grid(True)
     file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png') # TODO: better naming system
     plt.savefig(file_path)
@@ -871,7 +924,7 @@ def make_all_convergence_plots(save_path='qnn-experiments/plots/convergence_plot
 
 ########## Category Boxplots for Optimizer Categories ##########
 
-def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased,xAxisName,iterList):
+def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased,xAxisName,iterList,labels=['Gradient Free','Evolutional','Gradient Based']):
     #data_GradFree={1:[0.2,0.8],2:[0.2,0.8],3:[0.2,0.8],4:[0.2,0.8]} 
     #data_GradBased={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
     #data_EVO={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
@@ -882,12 +935,13 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
     fig, ax = plt.subplots(figsize=(10, 6))   
     #plt.figure()
     
-    labels=list(data_GradFree.keys())
+    #labels=list(data_GradFree.keys())
     if(xAxisName=='maxiter'):
-        x = [1,2]
-        positions1=[0.80, 1.80]
-        positions2=[1.20, 2.20]
-        widths=[0.25,0.25]
+        positions1=[0.80, 2.10, 3.40]
+        positions2=[1.20, 2.50, 3.80]
+        positions3=[1.60, 2.90, 4.20]
+        widths=[0.25,0.25,0.25]
+        x=positions2
     else:
         positions1=[0.80, 2.10,    3.40, 4.70]
         positions2=[1.20, 2.50, 3.80, 5.10]
@@ -903,17 +957,27 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
     print(":::::::::::::::::::::::::::")
     print(len(valuesGradBased))
     
+    # adapt colors:
+    c = []
+    color_names = ["darkseagreen", "green", "skyblue"]
+    i=0
+    for color in color_names:
+        c_temp = list(matplotlib.colors.to_rgba("skyblue"))
+        c_temp[3] = 0.5 # make more transparent
+        c_temp = tuple(c_temp)
+        c[i] = c_temp
+        i+=1
 
-    bp1=plt.boxplot(valuesGradFree,positions=positions1, patch_artist=True, boxprops=dict(facecolor='darkseagreen',hatch='oo'), manage_ticks=True ,widths=widths )
-    bp2=plt.boxplot(values_EVO,positions=positions2, patch_artist=True, boxprops=dict(facecolor='green',hatch='xx'), manage_ticks=True ,widths=widths)
-    bp3=plt.boxplot(valuesGradBased,positions=positions3, patch_artist=True, boxprops=dict(facecolor='skyblue',hatch='//'), manage_ticks=True ,widths=widths)
+    bp1=plt.boxplot(valuesGradFree,positions=positions1, patch_artist=True, boxprops=dict(facecolor=c[0],hatch='oo'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths )
+    bp2=plt.boxplot(values_EVO,positions=positions2, patch_artist=True, boxprops=dict(facecolor=c[1],hatch='xx'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths)
+    bp3=plt.boxplot(valuesGradBased,positions=positions3, patch_artist=True, boxprops=dict(facecolor=c[2],hatch='//'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths)
     bps=[bp1,bp2,bp3]
     
     plt.xticks(ticks=x, labels=iterList)
-    dg_patch = matplotlib.patches.Patch(facecolor='darkseagreen',hatch='o', label='Gradient Free')
-    green_patch =matplotlib.patches.Patch(facecolor='green',hatch='x', label='Evolutional')
+    dg_patch = matplotlib.patches.Patch(facecolor=c[0],hatch='o', label=labels[0])
+    green_patch =matplotlib.patches.Patch(facecolor=c[1],hatch='x', label=labels[1])
 
-    blue_patch = matplotlib.patches.Patch(facecolor='skyblue',hatch=r'//', label='Gradient Based')
+    blue_patch = matplotlib.patches.Patch(facecolor=c[2],hatch=r'//', label=labels[2])
     leg=plt.legend(handles=[dg_patch,green_patch,blue_patch], labelspacing=1, handlelength=3) 
 
     for patch in leg.get_patches():
@@ -1082,14 +1146,17 @@ if __name__ == "__main__":
     # change current working directory to access correct files
     os.chdir("../../")
     
-    # prepare data for convergence plots
-    extract_all_data_from_json_files()
-    fill_mean_fun_values()
-    # make all convergence plots
-    make_all_convergence_plots()
+    # # prepare data for convergence plots
+    # extract_all_data_from_json_files()
+    # fill_mean_fun_values()
+    # # make all convergence plots
+    # make_all_convergence_plots()
 
-    # compute all relevant convergence plot info (like achieved function values, delta, STD, etc.)
-    compute_convergence_plot_information()
+    # # compute all relevant convergence plot info (like achieved function values, delta, STD, etc.)
+    # compute_convergence_plot_information()
+
+    # makes boxplots for different bounds values (preliminary tests)
+    make_bounds_boxplots()
 
     # make all category boxplots for optimizers (grad-free, evolution based, grad-based (without SGD))
     # makeCategoryBoxplots('s_rank')

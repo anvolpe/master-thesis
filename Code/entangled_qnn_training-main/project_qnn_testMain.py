@@ -201,17 +201,95 @@ def change_pso_json(directory):
                 json.dump(data, file, indent=4)
             del data
 
+def convergence_plot_per_optimizer(save_path, mean_fun_data):
+    '''
+        Convergence plot for mean callback values where exactly one parameter of data_type, num_data_points or s_rank is None and thus variable.
+        mean_fun_data is a dictionary where the possible values for the variable parameter are the key and each value saved for a key is a list of fun_values
+        mean_nit_data is a list of the corresponding number of iterations for the found optimal fun value (last value in each list in mean_fun_data)
+    '''
+    # create correct directory if it doesn't exist
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # Stepsize: Stepsize between Iterations whose fun value is saved in callback (influences x-axis of plot)
+    # for Powell, BFGS, Dual Annealing, GA, PSO and DE: stepsize = 1 (every iteration)
+    # for all other optimizers: stepsize = 10 (every 10th iteration)
+    opt = "powell"
+    learning_rate = None
+    stepsize = 10
+    if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm', 'diff_evolution']:
+        stepsize = 1
+    
+    #determine what parameter is variable (i.e. None in argument list) and check that only one parameter is None
+    param_names = ['data_type', 'num_data_points', 's_rank']
+    params = ["random", "1", None]
+    none_indices = [i for i in range(len(params)) if params[i] == None]
+    if(len(none_indices)>1):
+        raise Exception('Only one parameter of data_type, num_data_points and s_rank is allowed to be None')
+    none_param = param_names[none_indices[0]]
+
+    # Create title: Only add parameters that are not variable (i.e. None) & add learning rate for SGD optimizers if applicable
+    title = f'Convergence plot for {opt_titles[opt]}, maxiter = 1000, '
+    if(opt in ['sgd', 'adam', 'rmsprop'] and learning_rate is not None):
+        title += f'learning rate = {learning_rate},'
+    title += '\n'
+    param_titles = {'data_type': "Data Type", 'num_data_points': "Number of Data Points", 's_rank': "Schmidt Rank"}
+    j=0
+    for i in range(0,3):
+        if i not in none_indices:
+            title += f"{param_titles[param_names[i]]}: {params[i]}"
+            j += 1
+            if j < 2:
+                title += ", "
+    
+    #colors for each config id
+    #cmap = matplotlib.colormaps["tab10"]
+    cmap = ['skyblue', 'darkseagreen', 'green', 'grey']
+    plt.figure(figsize=(12.8,9.6))
+    c = 0 # needed to determine correct color
+    for param_value in mean_fun_data.keys():
+        #color = cmap(c/4) #use when loading a colormap from matplotplib
+        color = cmap[c]
+        label = f"{none_param} = {param_value}"
+        y = mean_fun_data[param_value]
+        # Genetic Algorithm saves callback function values for all maxiter iterations, instead of only nit iterations
+        # hence max_nit_value = maxiter for Genetic Algorithm
+        if opt == "genetic_algorithm":
+            x = np.arange(0,len(y)*stepsize,stepsize)
+        else:
+            x = np.arange(0,1000)
+        if x[-1] < x[-2]:
+            print("achtung: plot problem:", opt, x[-1], x[-2])
+        plt.plot(x,y, color=color, label=label)
+        c += 1
+    plt.ylim(0,1)
+    plt.xlabel('Iteration',fontsize=24)
+    plt.ylabel('Function value',fontsize=24)
+    #plt.xlabel('Iteration')
+    #plt.ylabel('Function value')
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.legend(fontsize=18)
+    #plt.legend()
+    plt.title(title,fontsize=30)
+    #plt.title(title)
+    plt.grid(True)
+    file_path = os.path.join(save_path, f'{opt}_convergence_fun_test_old.png') 
+    plt.savefig(file_path, dpi=1000)
+    plt.close()
+
 if __name__ == "__main__":
     os.chdir("../../")
-    directory = "experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE"
-    #directory = "experimental_results/results/optimizer_results"
-    change_s_rank(directory)
-    print("s_rank done")
-    add_opt_info(directory)
-    print("add opt info done")
-    change_pso_json(directory)
-    print("pso done")    
-    #print(db_list)
+    
+    save_path = "qnn-experiments/plots"
+    x = np.arange(0,1000)
+    y1 = x**2
+    y2 = y1+1
+    y3 = y2+1
+    y4 = y3+1
+    values = {"1": y1, "2": y2, "3": y3, "4": y4}
+    convergence_plot_per_optimizer(save_path, values)
+    
 
 
    
