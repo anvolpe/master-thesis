@@ -1,5 +1,4 @@
 import json
-import multiprocessing
 import time
 from datetime import datetime
 from qnns.cuda_qnn import CudaPennylane
@@ -11,36 +10,32 @@ from victor_thesis_metrics import *
 from victor_thesis_experiments_main import *
 
 from project_qnn_experiments_optimizers import *
-
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import cpu_count
 from project_qnn_sgd_for_scipy import *
 import os
-from scipy.optimize import minimize, dual_annealing
-import pyswarms as ps
-
 import re
 
 num_layers = 1
 num_qubits = 2
 dimensions = 6
 max_iters = [100,500,1000]
-#max_iters = [1000]
-#tols = [1e-5]
 tols = [1e-5, 1e-10]
-#tols = [1e-10, 1e-15] schlechte ergebnisse, 1e-5 viel besser
-#tols = [1e-2, 1e-5]
-#bounds = [(0,2*np.pi)*dimensions]
 default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
-#bounds = list(zip(np.ones(6)*(-2)*np.pi, np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
-#learning_rates = [0.0001]
 
 def single_config_experiment_bounds(conf_id, databatch_id, data_type, num_data_points, s_rank, unitary, data_points):
     '''
     Run all optimizer experiments for a single config & databatch combination
 
-    Return:
+    Arguments:
+        conf_id (int): id of configuration of training data, between 0 and 319
+        databatch_id (int): number of databatch, between 0 and 4
+        data_type (String): datatype of underlying training data  one of 'random', 'orthogonal', 'non_lin_ind', 'var_s_rank'
+        num_data_points (String): number of data points, one of 1, 2, 3, 4
+        s_rank (String): Schmidt rank of training data, one of 1, 2, 3, 4
+        unitary (tensor): shape: 4x4
+        data_points (tensor): shape 1x4x4
+
+    Returns:
         dict containing all specifications of optimizers & results
     '''
     result_dict = {}
@@ -115,10 +110,10 @@ def single_config_experiment_bounds(conf_id, databatch_id, data_type, num_data_p
 
 def test_bounds():
     '''
-    Read all configurations of qnn and databatches from configurations_16_6_4_10_13_3_14.txt and run optimizer experiments
-    for every configuration & databatch combination
-    Creates json file for every configuration that saves all specifications for configuration and optimizer results.
-    File is saved as "experimental_results/results/optimizer_results/conf_[conf_id]_opt.json"
+        Read all configurations of qnn and databatches from configurations_16_6_4_10_13_3_14.txt and run optimizer experiments
+        for every configuration & databatch combination
+        Creates json file for every configuration that saves all specifications for configuration and optimizer results.
+        File is saved as "experimental_results/results/optimizer_results/conf_[conf_id]_opt.json"
     '''
     filename = "Code/entangled_qnn_training-main/experimental_results/configs/configurations_16_6_4_10_13_3_14.txt"
     file = open(filename, 'r')

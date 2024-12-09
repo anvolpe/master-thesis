@@ -476,118 +476,14 @@ def load_json_data(directory, conf_id_list=range(0,320)):
     return all_data
 
 ########## Boxplots Plots for bounds testing ##########
-#???
-def extract_solution_fun_data(json_data):
-    '''
-        Extract mean x_min and x_max value for every optimizer for every bound for one config.
-    '''
-    gradient_free = ["nelder_mead", "powell", "cobyla"]
-    gradient_based = ["sgd", "adam", "rmsprop", "bfgs", "dual_annealing","slsqp"]
-    optimizers = gradient_based + gradient_free
-    bounds_batches = ["bounds_0", "bounds_1", "bounds_2", "bounds_3", "bounds_4"]
-    databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
-
-
-    # prepare results dict
-    # bounds_i : opt_1 : [(x_min1, x_max1), (x_min2, x_max2),...], opt_2 : ...
-    res_min = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
-    res_max = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
-
-    for i in range(len(json_data)):
-        print(f"Verarbeite config_{i}")
-        for databatch_id in databatches:
-            print(f"Verarbeite {databatch_id}")
-            for bounds_id in bounds_batches:
-                print(f"Verarbeite {bounds_id}")
-                for opt in optimizers:
-                    print(f"Verarbeite {opt}")
-                    try:
-                        dict = json_data[i][databatch_id][bounds_id][opt]["0"]
-                        if opt not in res_min[bounds_id]:
-                            res_min[bounds_id][opt] = []
-                        if opt not in res_max[bounds_id]:
-                            res_max[bounds_id][opt] = []
-                        x = dict["x"]
-                        x = [float(idx) for idx in x.strip('[ ]').split()]
-                        res_min[bounds_id][opt].append(np.min(x))
-                        res_max[bounds_id][opt].append(np.max(x))
-                    except KeyError as e:
-                        print(f"Fehler beim Lesen der Daten: {e}")
-
-    # Berechne Pro Optimierer (pro Bounds) untere x-Grenze und obere x-Grenze
-    res_min_max = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
-    for bounds_id in bounds_batches:
-        print(f"Verarbeite {bounds_id}")
-        for opt in optimizers:
-            print(f"Verarbeite {opt}")
-            try:
-                res_min_max[bounds_id][opt] = (np.min(res_min[bounds_id][opt]),np.max(res_max[bounds_id][opt]))
-            except KeyError:
-                print(f'Optimierer existiert für diese bounds nicht.')
-    
-    return res_min, res_max, res_min_max   
-#???
-def extract_solution_x_data(json_data):
-    '''
-        Extract mean x_min and x_max value for every optimizer for every bound for one config.
-        Needed for create_min_max_boxplots
-        
-        Arguments:
-            json_data (dict): Dictionary containing all data from json files, first level keys are config_ids
-        Returns:
-            res_min (dict): all smallest solution x-values per optimizer and bounds value
-            res_max (dict): all largest solution x-values per optimizer and bounds value
-            res_min_max (dict): the smallest and largest solution x-value per optimizer
-    '''
-    gradient_free = ["nelder_mead", "powell", "cobyla"]
-    gradient_based = ["sgd", "adam", "rmsprop", "bfgs", "dual_annealing","slsqp"]
-    optimizers = gradient_based + gradient_free
-    bounds_batches = ["bounds_0", "bounds_1", "bounds_2", "bounds_3", "bounds_4"]
-    databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
-
-    # prepare results dict
-    # bounds_i : opt_1 : [(x_min1, x_max1), (x_min2, x_max2),...], opt_2 : ...
-    res_min = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
-    res_max = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
-
-    for i in range(len(json_data)):
-        print(f"Verarbeite config_{i}")
-        for databatch_id in databatches:
-            print(f"Verarbeite {databatch_id}")
-            for bounds_id in bounds_batches:
-                print(f"Verarbeite {bounds_id}")
-                for opt in optimizers:
-                    print(f"Verarbeite {opt}")
-                    try:
-                        dict = json_data[i][0][databatch_id][bounds_id][opt]["0"]
-                        if opt not in res_min[bounds_id]:
-                            res_min[bounds_id][opt] = []
-                        if opt not in res_max[bounds_id]:
-                            res_max[bounds_id][opt] = []
-                        x = dict["x"]
-                        x = [float(idx) for idx in x.strip('[ ]').split()]
-                        res_min[bounds_id][opt].append(np.min(x))
-                        res_max[bounds_id][opt].append(np.max(x))
-                    except KeyError as e:
-                        print(f"Fehler beim Lesen der Daten: {e}")
-
-    # Berechne Pro Optimierer (pro Bounds) untere x-Grenze und obere x-Grenze
-    res_min_max = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
-    for bounds_id in bounds_batches:
-        print(f"Verarbeite {bounds_id}")
-        for opt in optimizers:
-            print(f"Verarbeite {opt}")
-            try:
-                res_min_max[bounds_id][opt] = (np.min(res_min[bounds_id][opt]),np.max(res_max[bounds_id][opt]))
-            except KeyError:
-                print(f'Optimierer existiert für diese bounds nicht.')
-    
-    return res_min, res_max, res_min_max
 
 def create_min_max_boxplots(res_min, res_max, save_path):
     '''
         Creates several boxplot where minimal and maximal solution x-values are plotted per optimizer. One plot per bounds value.
         Save path for plots: savepath+'{bounds_id}_boxplot_no_outliers.png'
+
+        Prerequisite: 
+            exactly one of datatype, num_data_points and s_rank is None
 
         Arguments:
             res_min (dict): first level keys are values for bounds ("bounds_0", "bounds_1", ..., "bounds_4") and values are list of lowest function values
@@ -731,6 +627,17 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         Convergence plot for mean callback values where exactly one parameter of data_type, num_data_points or s_rank is None and thus variable.
         mean_fun_data is a dictionary where the possible values for the variable parameter are the key and each value saved for a key is a list of fun_values
         mean_nit_data is a list of the corresponding number of iterations for the found optimal fun value (last value in each list in mean_fun_data)
+
+        Arguments:
+            save_path (String): save path for plot
+            mean_fun_data (dict of lists): keys are values for the parameter (of data_type, num_data_points or s_rank) that is None, values are list of function values
+            mean_nit_data (dict of lists): keys are values for the parameter (of data_type, num_data_points or s_rank) that is None, values is maximal number of iterations for this value
+            opt (String): optimizer name
+            maxiter (int): maximal number of iterations, for plot title
+            datatype (String): random, orthogonal, non_lin_ind, var_s_rank or None
+            num_data_points (String): 1,2,3,4 or None
+            s_rank (String): 1,2,3,4 or None 
+            learning_rate (Boolean, optional): true if data is restricted to learning_rate = 0.01
     '''
     # create correct directory if it doesn't exist
     if not os.path.exists(save_path):
@@ -807,14 +714,17 @@ def calc_convergence_data(datatype, num_data_points, s_rank):
         The mean achieved function value history per optimizer per value of the None-parameter is calculated for every optimizer.
 
         Needed for make_all_convergence_plots()
-
-        data_type (String): random, orthogonal, non_lin_ind, var_s_rank
-        num_data_points (String): 1,2,3,4
-        s_rank (String): 1,2,3,4
         
-        Prerequisite: mean_callback_values_per_config is not empty.
+        Prerequisite: 
+            mean_callback_values_per_config is not empty.
+            exactly one of datatype, num_data_points and s_rank is None
 
-        Result: 
+        Arguments:
+            datatype (String): random, orthogonal, non_lin_ind, var_s_rank or None
+            num_data_points (String): 1,2,3,4 or None
+            s_rank (String): 1,2,3,4 or None
+        
+        Results: 
             callback_values: dictionary of dictionaries. Level 1 key: optmizer, level 2 key: value of None-parameter, values: List of callback values
             nit_values: dictionary of dictionaries. Level 1 key: optmizer, level 2 key: value of None-parameter, values: corresponding maximum number of iterations for this list of callback values
     '''
@@ -872,6 +782,9 @@ def make_all_convergence_plots(save_path='qnn-experiments/plots/convergence_plot
         Pre-Req:
             if a save_path is given it must end with "/"
             mean_callback_values_per_config is not empty.
+        
+        Arguments:
+            save_path (String, optional): save path for plots
     '''
     
     for maxiter in maxiter_list:
@@ -924,7 +837,19 @@ def make_all_convergence_plots(save_path='qnn-experiments/plots/convergence_plot
 
 ########## Category Boxplots for Optimizer Categories ##########
 
-def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased,xAxisName,iterList,labels=['Gradient Free','Evolutional','Gradient Based']):
+def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased,xAxisName,iterList,labels=['Gradient-Free','Evolution-Based','Gradient-Based']):
+    '''
+        Plot 3 boxplots (values in data_GradFree, data_EVO and data_GradBased) per value of xAxisName 
+        (values for xAxisName are given in iterList). 
+
+        Arguments:
+            boxplot_save_path (String): save path for plot
+            title (String): title of plot
+            data_GradFree,data_EVO,data_GradBased (dict of lists): contains achieved function values for each of the three boxplots for each value of xAxisName
+            xAxisName (String): variable parameter (x Axis of plot)
+            iterList (list): values for x Axis
+            labels (list, optional): names of each of the three boxplots, default: ['Gradient-Free','Evolution-Based','Gradient-Based']
+    '''
     #data_GradFree={1:[0.2,0.8],2:[0.2,0.8],3:[0.2,0.8],4:[0.2,0.8]} 
     #data_GradBased={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
     #data_EVO={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
@@ -952,10 +877,6 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
     valuesGradFree = [data_GradFree[key] for key in data_GradFree.keys()]
     values_EVO = [data_EVO[key] for key in data_EVO.keys()]
     valuesGradBased = [data_GradBased[key] for key in data_GradBased.keys()]
-
-    print(len(valuesGradFree))
-    print(":::::::::::::::::::::::::::")
-    print(len(valuesGradBased))
     
     # adapt colors:
     c = []
@@ -1016,9 +937,15 @@ def extract_func_data(directory, conf_id_list,every_fifth_config=False,target_le
     '''
         For each entry in json_data (each configuration) extract list of 
         gradientfree and gradientbased optimizers reached final functional values for specified conf_id list
+
+        Arguments:
+            directory (String)
+            conf_id_list (list of int)
+            every_fifth_config (Boolean, optional): true if every fifth configuration is 
+            target_learning_rate (Boolean, optional): true if learning rate for SGD optimizers is to be restricted to only 0.01
    
     '''
-    # Determine key names for maxiter (TODO: change back if changed during final experiment)
+    # Determine key names for maxiter
     maxiter_name = "maxiter"
     nit_name = "nit"
 
@@ -1096,7 +1023,14 @@ def extract_func_data(directory, conf_id_list,every_fifth_config=False,target_le
     
 def makeCategoryBoxplots(xAxisName):
     '''
-    Making boxplots for given datatype, 
+        Making boxplots for all three optimizer types (gradient-based, gradient-free and evolution-based) 
+        given one of data_type, num_data_points or Schmidt rank (specified in xAxisName)
+
+        plots are saved in 'qnn-experiments/plots/category_plots/three_categories_withoutSGD/'
+
+        Arguments:
+            xAxisName (String): variable training data attribute, i.e. x-axis of plot (data_type, num_data_points or s_rank)
+
     '''
     if(xAxisName=='data_type'):
         iterList = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
@@ -1146,14 +1080,14 @@ if __name__ == "__main__":
     # change current working directory to access correct files
     os.chdir("../../")
     
-    # # prepare data for convergence plots
-    # extract_all_data_from_json_files()
-    # fill_mean_fun_values()
-    # # make all convergence plots
-    # make_all_convergence_plots()
+    # prepare data for convergence plots
+    extract_all_data_from_json_files()
+    fill_mean_fun_values()
+    # make all convergence plots
+    make_all_convergence_plots()
 
-    # # compute all relevant convergence plot info (like achieved function values, delta, STD, etc.)
-    # compute_convergence_plot_information()
+    # compute all relevant convergence plot info (like achieved function values, delta, STD, etc.)
+    compute_convergence_plot_information()
 
     # makes boxplots for different bounds values (preliminary tests)
     make_bounds_boxplots()

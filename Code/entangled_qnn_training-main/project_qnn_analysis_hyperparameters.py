@@ -392,7 +392,7 @@ def create_all_hyperparameter_boxplots():
 
 def create_preliminary_test_boxplots():
     '''
-        Create boxplots for preliminary tests for Dual Annealing, PSO, Genetic Algorithm and Differential Evolution
+        Create hyperparameter boxplots for preliminary tests for Dual Annealing, PSO, Genetic Algorithm and Differential Evolution
     '''
     directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
     save_path = "qnn-experiments/plots/hyperparameter_plots/preliminary_test/bounds/dual_annealing"
@@ -414,15 +414,15 @@ def create_preliminary_test_boxplots():
 if __name__ == "__main__":
     #switch to correct directory
     os.chdir("../../")
-    print(os.getcwd())
+    
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
 
     # create PSO boxplot: achieved function values for different numbers of particles and 
-    # save_path = "qnn-experiments/plots/hyperparameter_plots/preliminary_test/hyperparameters_GA_DE_PSO/particle_swarm"
-    # create_multi_PSO_boxplot(save_path)
-    # # create all other hyperparameter boxplots for final experiment
-    # create_all_hyperparameter_boxplots()
+    save_path = "qnn-experiments/plots/hyperparameter_plots/preliminary_test/hyperparameters_GA_DE_PSO/particle_swarm"
+    create_multi_PSO_boxplot(save_path)
+    # create all other hyperparameter boxplots for final experiment
+    create_all_hyperparameter_boxplots()
 
     # create hyperparameter boxplots for preliminary tests (Dual Annealing, Genetic Algorithm, PSO, Differential Evolution)
     # for Dual Annealing: "Fehler beim Lesen der Daten: "bounds_0": "dual_annealing" is acceptable!
