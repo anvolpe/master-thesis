@@ -214,7 +214,8 @@ def change_stop_criteria_GA(directory):
                 try:
                     opt = "genetic_algorithm"
                     d = data[databatch][opt]
-                    d["stop_criteria"] = "saturate_50"
+                    for i in range(0,len(d)-2):
+                        d[str(i)]["stop_criteria"] = "saturate_50"
                     data[databatch][opt] = d
                     del d
                 except KeyError as e:
