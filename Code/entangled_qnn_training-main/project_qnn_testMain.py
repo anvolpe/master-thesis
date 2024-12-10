@@ -201,6 +201,30 @@ def change_pso_json(directory):
                 json.dump(data, file, indent=4)
             del data
 
+def change_stop_criteria_GA(directory):
+    for filename in os.listdir(directory):
+        if filename.endswith('.json'):
+            file_path = os.path.join(directory, filename)
+            #print(f"Lade Datei: {file_path}")
+            data = []
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+            print(data["conf_id"])
+            for databatch in db_list:
+                try:
+                    opt = "genetic_algorithm"
+                    d = data[databatch][opt]
+                    d["stop_criteria"] = "saturate_50"
+                    data[databatch][opt] = d
+                    del d
+                except KeyError as e:
+                    #continue
+                    print(f"Schlüssel fehlt: {e}")
+
+            with open(file_path, 'w') as file: 
+                json.dump(data, file, indent=4)
+            del data
+
 def convergence_plot_per_optimizer(save_path, mean_fun_data):
     '''
         Convergence plot for mean callback values where exactly one parameter of data_type, num_data_points or s_rank is None and thus variable.
@@ -279,16 +303,9 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data):
     plt.close()
 
 if __name__ == "__main__":
-    os.chdir("../../")
-    
-    save_path = "qnn-experiments/plots"
-    x = np.arange(0,1000)
-    y1 = x**2
-    y2 = y1+1
-    y3 = y2+1
-    y4 = y3+1
-    values = {"1": y1, "2": y2, "3": y3, "4": y4}
-    convergence_plot_per_optimizer(save_path, values)
+    #os.chdir("../../")
+    directory = "qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part2_GA_PSO_DE"
+    change_stop_criteria_GA(directory)
     
 
 

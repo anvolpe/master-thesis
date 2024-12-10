@@ -636,7 +636,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
     # for Powell, BFGS, Dual Annealing, GA, PSO and DE: stepsize = 1 (every iteration)
     # for all other optimizers: stepsize = 10 (every 10th iteration)
     stepsize = 10
-    if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm', 'diff_evolution']:
+    if opt in ['powell', 'bfgs', 'dual_annealing', 'genetic_algorithm', 'particle_swarm']:
         stepsize = 1
     
     #determine what parameter is variable (i.e. None in argument list) and check that only one parameter is None
