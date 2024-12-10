@@ -304,7 +304,6 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data):
     plt.close()
 
 if __name__ == "__main__":
-    #os.chdir("../../")
     directory = "qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part2_GA_PSO_DE"
     change_stop_criteria_GA(directory)
     

@@ -51,6 +51,7 @@ Hyperparameters for COBYLA:
 * catol: Tolerance for constraint violations.
   Data Type: float
   Values: 1e-5, 1e-10
+* callback: every tenth iteration
  
 ---------------------------------------------------------------------------------------------------------------
 
@@ -68,6 +69,7 @@ Hyperparameters for BFGS:
 * eps: If jac is NONE the absolute step size used for numerical approximation of the jacobian via forward differences.
   Data Type: float
   Values: 1e-5, 1e-10  
+* callback: every iteration
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -82,6 +84,7 @@ Hyperparameters for Powell:
 * xtol: Relative error in solution xopt acceptable for convergence.
   Data Type: float
   Values: 1e-5, 1e-10
+* callback: every iteration
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -96,6 +99,7 @@ Hyperparameters for SLSQP:
 * eps: Step size used for numerical approximation of the Jacobian.
   Data Type: float
   Values: 1e-5, 1e-10  
+* callback: every tenth iteration
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -110,6 +114,7 @@ Hyperparameters for SGD, Adam and RMSprop:
 * eps: Correction term for numerical stability to prevent division by zero (only used for Adam and RMSprop).
   Data Type: float
   Values: 1e-5, 1e-10 
+* callback: every tenth iteration
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -121,6 +126,7 @@ Hyperparameters for Dual Annealing:
 * bounds: Bounds for solution x.
   Data Type: array of float
   Value: [0, 2π] across all dimensions (determined during preliminary testing)
+* callback: every iteration
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -150,9 +156,10 @@ Hyperparameters for Genetic Algorithm:
 * mutation_type: Mutation method. Mutation introduces diversity into the population of solutions. Description of different types available in paper.
   Data Type: String
   Value: "random" (determined during preliminary testing)
-* stop_criteria: Termination criterion. If "saturate_n": termination if achieved function value has not improved after n iterations.
+* stop_criteria: Termination criterion. "saturate_n" causes termination if achieved function value has not improved after n iterations.
   Data Type: String
-  Value: "saturate_50", None
+  Value: "saturate_50"
+* callback: every iteration
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -173,12 +180,13 @@ Hyperparameters for Particle Swarm Optimization:
 * c2: Social value of a particle in the swarm.
   Data Type: float
   Value: 2 (determined during preliminary testing)
-* ftol: Relative error in fun(xopt) acceptable for convergence.
+* ftol: Relative error in fun(xopt) acceptable for convergence. If "-inf": no relative error is acceptable for convergence.
   Data Type: float
-  Values: 1e-5, -np.Infinity
+  Values: 1e-5, -inf
 * ftol_iter: Number of iterations over which the relative error in fun(xopt) is acceptable for convergence.
   Data Type: integer
   Value: 50
+* callback: every iteration
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -199,9 +207,10 @@ Hyperparameters for Differential Evolution:
   Data Type: integer
   Value: 10 (determined during preliminary testing)
 * tol: Relative tolerance for convergence, the solving stops when np.std(pop) <= atol + tol * np.abs(np.mean(population_energies)),
-       where and `atol` and `tol` are the absolute and relative tolerance respectively.
+       where and atol and tol are the absolute and relative tolerance respectively.
   Data Type: float
   Values: 1e-5 (determined during preliminary testing)
+* callback: every tenth iteration
 
 
 

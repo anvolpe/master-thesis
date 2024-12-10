@@ -1065,7 +1065,6 @@ def makeCategoryBoxplots(xAxisName):
 
 
 if __name__ == "__main__":
-
     # change current working directory to access correct files
     os.chdir("../../")
     
