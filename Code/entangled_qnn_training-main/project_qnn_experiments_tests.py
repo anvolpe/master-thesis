@@ -20,10 +20,15 @@ import re
 
 from project_qnn_experiments_optimizers import *
 
+'''
+    This file is only for testing purposes, 
+    i.e. if testing one optimizer for a single configuration of training data and a single data batch is required.
+'''
+
 
 def test_several_optimizers():
     '''
-    Test function for conf_id 0 and data_batch_0 for several optimizers
+        Test function for conf_id 0 and data_batch_0 for several optimizers
     '''
     # setup qnn configuration
     conf_id = 0

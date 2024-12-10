@@ -22,6 +22,10 @@ import pandas as pd
 from scipy.optimize import minimize, dual_annealing
 import re
 
+'''
+    Analysis of final experiment for all optimizers and optimizer categories (convergence plots, boxplots, etc.).
+'''
+
 conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
 combinations_to_skip = [["non_lin_ind","2","3"],["non_lin_ind","3","3"],["non_lin_ind","4","3"]] # Format [data_type, num_data_points, s_rank]
 
@@ -53,8 +57,8 @@ def extract_all_data_from_json_files():
     optimizers2 = ['genetic_algorithm', 'particle_swarm', 'diff_evolution']
 
     #filename = os.path.join(os.getcwd(), 'TrainLabel1.csv')
-    origin_path1 = os.path.join(os.getcwd(),'experimental_results/results/optimizer_results/experiment_part1')
-    origin_path2 = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
+    origin_path1 = os.path.join(os.getcwd(),"qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part1")
+    origin_path2 = 'qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part2_GA_PSO_DE'
     calc_mean_fun_nit_callback_values_per_config(optimizers1,origin_path1)
     calc_mean_fun_nit_callback_values_per_config(optimizers2,origin_path2)
 
@@ -72,7 +76,7 @@ def calc_mean_fun_nit_callback_values_per_config(opt_list, directory, max_iter=1
                 Key on level 2: config_id (integer), values: list (callback values)
         
         Arguments:
-            opt_list (list of functions): list of functions, as defined in project_qnn_experiments_optimizers.py
+            opt_list (list of String): list of optimizers, names have to conform with names of optimizers in json files
             directory (String): source directory for json files
             maxiter (int, optiona): can be 100, 500 or 1000
     '''
@@ -477,6 +481,63 @@ def load_json_data(directory, conf_id_list=range(0,320)):
 
 ########## Boxplots Plots for bounds testing ##########
 
+def extract_solution_x_data(json_data):
+    '''
+        Extract mean x_min and x_max value for every optimizer for every bound for one config.
+        Needed for create_min_max_boxplots
+        
+        Arguments:
+            json_data (dict): Dictionary containing all data from json files, first level keys are config_ids
+        Returns:
+            res_min (dict): all smallest solution x-values per optimizer and bounds value
+            res_max (dict): all largest solution x-values per optimizer and bounds value
+            res_min_max (dict): the smallest and largest solution x-value per optimizer
+    '''
+    gradient_free = ["nelder_mead", "powell", "cobyla"]
+    gradient_based = ["sgd", "adam", "rmsprop", "bfgs", "dual_annealing","slsqp"]
+    optimizers = gradient_based + gradient_free
+    bounds_batches = ["bounds_0", "bounds_1", "bounds_2", "bounds_3", "bounds_4"]
+    databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
+
+    # prepare results dict
+    # bounds_i : opt_1 : [(x_min1, x_max1), (x_min2, x_max2),...], opt_2 : ...
+    res_min = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
+    res_max = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
+
+    for i in range(len(json_data)):
+        print(f"Verarbeite config_{i}")
+        for databatch_id in databatches:
+            print(f"Verarbeite {databatch_id}")
+            for bounds_id in bounds_batches:
+                print(f"Verarbeite {bounds_id}")
+                for opt in optimizers:
+                    print(f"Verarbeite {opt}")
+                    try:
+                        dict = json_data[i][0][databatch_id][bounds_id][opt]["0"]
+                        if opt not in res_min[bounds_id]:
+                            res_min[bounds_id][opt] = []
+                        if opt not in res_max[bounds_id]:
+                            res_max[bounds_id][opt] = []
+                        x = dict["x"]
+                        x = [float(idx) for idx in x.strip('[ ]').split()]
+                        res_min[bounds_id][opt].append(np.min(x))
+                        res_max[bounds_id][opt].append(np.max(x))
+                    except KeyError as e:
+                        print(f"Fehler beim Lesen der Daten: {e}")
+
+    # Berechne Pro Optimierer (pro Bounds) untere x-Grenze und obere x-Grenze
+    res_min_max = {"bounds_0": {}, "bounds_1": {}, "bounds_2": {}, "bounds_3": {}, "bounds_4": {}}
+    for bounds_id in bounds_batches:
+        print(f"Verarbeite {bounds_id}")
+        for opt in optimizers:
+            print(f"Verarbeite {opt}")
+            try:
+                res_min_max[bounds_id][opt] = (np.min(res_min[bounds_id][opt]),np.max(res_max[bounds_id][opt]))
+            except KeyError:
+                print(f'Optimierer existiert für diese bounds nicht.')
+    
+    return res_min, res_max, res_min_max
+
 def create_min_max_boxplots(res_min, res_max, save_path):
     '''
         Creates several boxplot where minimal and maximal solution x-values are plotted per optimizer. One plot per bounds value.
@@ -535,85 +596,13 @@ def create_min_max_boxplots(res_min, res_max, save_path):
         file_path = os.path.join(save_path, f'{bounds_id}_boxplot_no_outliers.png')
         plt.savefig(file_path, dpi=1200)
         plt.close()
-#???
-def extract_optimizer_data(json_data,use_nits=True):
-    gradient_based = ["nelder_mead", "powell", "cobyla"]
-    gradient_free = ["sgd", "adam", "rmsprop", "bfgs", "dual_annealing", "slsqp"]
-    optimizers = gradient_based + gradient_free
-
-    optimizer_data = {}
-    gradient_based_data = []
-    gradient_free_data = []
-    it_key = "nits"
-    if(use_nits==False):
-        it_key = "maxiter"
-
-    for entry in json_data:
-        if isinstance(entry, dict):
-            # alle databatches durchgehen
-            for batch_key in entry:
-                if batch_key.startswith("databatch_"):
-                    print(f"Verarbeite Datenbatch: {batch_key}")
-                    for optimizer in optimizers:
-                        if optimizer in entry[batch_key]:
-                            print(f"Verarbeite Optimierer: {optimizer}")
-
-                            # liste für optimierer
-                            if optimizer not in optimizer_data:
-                                optimizer_data[optimizer] = []
-
-                            # daten für jeden durchlauf entnehmen
-                            batch_data = entry[batch_key][optimizer]
-                            for key in batch_data:
-                                data = batch_data[key]
-                                
-                                # data muss dictionary sein und schlüssel enthalten
-                                if isinstance(data, dict):
-                                    nit = data.get(it_key, None)
-                                    fun = data.get("fun", None)
-                                    
-                                    if nit is not None and fun is not None:
-                                        try:
-                                            nit = int(nit)
-                                            fun = float(fun)
-                                            optimizer_data[optimizer].append((nit, fun))
-                                            if optimizer in gradient_based:
-                                                gradient_based_data.append((nit, fun))
-                                            if optimizer in gradient_free:
-                                                gradient_free_data.append((nit, fun))
-                                        except ValueError as e:
-                                            print(f"Fehler beim Konvertieren der Daten: {e}")
-                                    else:
-                                        print(f"Fehlende Schlüssel in den Daten: {data}")
-                                #else:
-                                    #print(f"Unerwartete Datenstruktur: {data}")
-                        else:
-                            print(f"Optimierer {optimizer} nicht in den Datenbatch {batch_key} gefunden")
-        else:
-            print("Eintrag ist kein Dictionary")
-
-    # Berechne mean fun values
-    def calculate_mean_data(data):
-        if not data:
-            return [], []
-        data.sort()
-        nits, funs = zip(*data)
-        unique_nits = sorted(set(nits))
-        mean_funs = [np.mean([fun for nit, fun in data if nit == unique_nit]) for unique_nit in unique_nits]
-        return unique_nits, mean_funs
-
-    mean_optimizer_data = {optimizer: calculate_mean_data(results) for optimizer, results in optimizer_data.items()}
-    mean_gradient_based_data = calculate_mean_data(gradient_based_data)
-    mean_gradient_free_data = calculate_mean_data(gradient_free_data)
-    
-    return mean_optimizer_data, mean_gradient_based_data, mean_gradient_free_data, optimizer_data
 
 def make_bounds_boxplots():
     '''
         Makes boxplots for all bounds values. 
         savepath: 'qnn-experiments/plots/hyperparameter_plots/preliminary_test/bounds'
     '''
-    directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
+    directory = "qnn-experiments/optimizer_results/bounds_2024-07-29"
     save_path = f'qnn-experiments/plots/hyperparameter_plots/preliminary_test/bounds'
 
     json_data = load_json_data(directory)
@@ -1046,8 +1035,8 @@ def makeCategoryBoxplots(xAxisName):
     #    print(f"maxiter: {maxiter}")
     #    path = save_path+'maxiter'
     
-    origin_path = 'experimental_results/results/optimizer_results/experiment_part1'
-    origin_path_2nd = 'experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE'
+    origin_path = 'qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part1'
+    origin_path_2nd = 'qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part2_GA_PSO_DE'
     save_path='qnn-experiments/plots/category_plots/three_categories_withoutSGD/'
     r_rankDict_grad={}
     r_rankDict_gradFree={}

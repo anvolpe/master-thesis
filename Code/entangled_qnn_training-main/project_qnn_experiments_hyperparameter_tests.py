@@ -40,6 +40,7 @@ def run_opt_experiments_for_every_fifth_config(opt_list=None):
 
         Arguments:
             opt_list (list of functions, optional): list of optimizer experiments as defined in project_qnn_experiments_optimizers.py
+                is opt_list is None all optimizers are used.
     '''
     filename = "Code/entangled_qnn_training-main/experimental_results/configs/configurations_16_6_4_10_13_3_14.txt"
     file = open(filename, 'r')
@@ -52,9 +53,6 @@ def run_opt_experiments_for_every_fifth_config(opt_list=None):
     unitary = []
     databatches = []
     result_dict = {}
-
-    if opt_list is None:
-        opt_list = [diff_evolution_experiment,particle_swarm_experiment,genetic_algorithm_experiment]
 
     for line in Lines:
         if(line.strip() == "---"): # config has been fully read and it is the right conf_id, run optimizer experiments for each data_point-tensor (5)

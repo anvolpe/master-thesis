@@ -217,7 +217,7 @@ def create_multi_PSO_boxplot(save_path):
         Arguments:
             save_path (Sring): save path for plot
     '''
-    directory = "experimental_results/results/optimizer_results/hyperparameter_tests_2024-10-26"
+    directory = "qnn-experiments/optimizer_results/hyperparameter_tests_2024-10-26"
     id_list = np.arange(0,320,5)
     data = load_json_data(directory, conf_id_list=id_list)
     title =  "Particle Swarm Optimization:\n Achieved loss function values per maxiter and number of particles"
@@ -373,7 +373,7 @@ def create_all_hyperparameter_boxplots():
         Beware: At least 7GB RAM are needed to run this.
     '''
     # experiment part 1: nelder_mead, bfgs, cobyla, powell, slsqp, sgd, rmsprop, adam
-    directory = "experimental_results/results/optimizer_results/experiment_part1"
+    directory = "qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part1"
     opt_list = ["nelder_mead","bfgs","cobyla","powell","slsqp","sgd","rmsprop","adam","dual_annealing"]
     json_data = load_json_data(directory)
     # create boxplots for experiment part 1
@@ -384,7 +384,7 @@ def create_all_hyperparameter_boxplots():
     #all_opts_fun_value_boxplots(save_path,json_data,opt_list)
     del json_data
     # experiment part 2: Genetic Algorihtm, PSO, Differential Evolution
-    directory = "experimental_results/results/optimizer_results/experiment_part2_GA_PSO_DE"
+    directory = "qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part2_GA_PSO_DE"
     opt_list = ["genetic_algorithm", "particle_swarm", "diff_evolution"]
     json_data = load_json_data(directory)
     # create boxplots for experiment part 2
@@ -404,7 +404,7 @@ def create_preliminary_test_boxplots():
     create_hyperparameter_boxplots(save_path,json_data, "dual_annealing", ["bounds"], prelim=False, more_info=False)
     del json_data
 
-    directory = "experimental_results/results/optimizer_results/hyperparameter_tests_2024-10-26"
+    directory = "qnn-experiments/optimizer_results/hyperparameter_tests_2024-10-26"
     json_data = load_json_data(directory, conf_id_list=range(0,320,5))
     print(len(json_data))
     opt_list = ["genetic_algorithm","particle_swarm","diff_evolution"]
