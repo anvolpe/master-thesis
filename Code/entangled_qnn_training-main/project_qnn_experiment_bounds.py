@@ -22,6 +22,10 @@ tols = [1e-5, 1e-10]
 default_bounds = list(zip(np.zeros(6), np.ones(6)*2*np.pi))
 learning_rates = [0.01, 0.001, 0.0001]
 
+'''
+    Preliminary Test: Determining bounds for Dual Annealing.
+'''
+
 def single_config_experiment_bounds(conf_id, databatch_id, data_type, num_data_points, s_rank, unitary, data_points):
     '''
     Run all optimizer experiments for a single config & databatch combination

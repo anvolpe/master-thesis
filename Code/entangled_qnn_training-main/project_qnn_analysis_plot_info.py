@@ -22,6 +22,10 @@ import pandas as pd
 from scipy.optimize import minimize, dual_annealing
 import re
 
+'''
+    Calculations of several values (i.e. mean, std, deltas, etc.) corresponding to the convergence plots. 
+'''
+
 conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
 combinations_to_skip = [["non_lin_ind","2","3"],["non_lin_ind","3","3"],["non_lin_ind","4","3"]] # Format [data_type, num_data_points, s_rank]
 
@@ -43,6 +47,9 @@ def check_deltas_for(var_param):
 
         Requirement:
             Convergence plots and all corresponding csv files in ../plot_info/ exist
+
+        Arguments:
+            var_param (String): variable training data attribute, one of 'data_type', 'num_data_points' or 's_rank'
     '''
     # check that only one parameter (data_type, num_data_points, s_rank) is None:
     param_value_list = {'data_type': datatype_list, 'num_data_points': [1,2,3,4], 's_rank': [1,2,3,4]}
@@ -125,6 +132,9 @@ def get_mean_and_delta_table_info(var_param):
 
         Requirement:
             Convergence plots and all corresponding csv files in ../plot_info/ exist
+
+        Arguments:
+            var_param (String): variable training data attribute, one of 'data_type', 'num_data_points' or 's_rank'
     '''
     # check that only one parameter (data_type, num_data_points, s_rank) is None:
     param_value_list = {'data_type': datatype_list, 'num_data_points': [1,2,3,4], 's_rank': [1,2,3,4]}
@@ -240,6 +250,9 @@ def get_mean_std_variable_datatype(num_data_points=1):
 
         Requirement:
             Convergence plots and all corresponding csv files in ../plot_info/ exist
+        
+        Arguments:
+            num_data_points (int, optional): between 1 and 4. Result only interesting for 1, which is why the default value is 1
     '''
     path = 'qnn-experiments/plots/convergence_plots/maxiter/1000/plot_info/s_rank/'
     mean_list = {1: [], 2: [], 3: [], 4: []}
@@ -293,26 +306,24 @@ def get_delta_non_lin_ind_to_others():
     mean_delta = delta_df.describe()
     print(mean_delta)
     
-
-
 if __name__ == "__main__":
     # change current working directory to access correct files
     os.chdir("../../")
 
     # print("Further Convergence Plot info")
     # print("================================= Check Deltas =================================")
-    # check_deltas_for("s_rank")
-    # check_deltas_for("num_data_points")
+    check_deltas_for("s_rank")
+    check_deltas_for("num_data_points")
 
     # print("================================= Tables =================================")
-    # get_mean_and_delta_table_info("s_rank")
-    # get_mean_and_delta_table_info("num_data_points")
+    get_mean_and_delta_table_info("s_rank")
+    get_mean_and_delta_table_info("num_data_points")
 
     # print("================================= Datatype table =================================")
-    # get_datatype_distribution()
+    get_datatype_distribution()
 
     # print("================================= STD for datatype (ndp=1) =================================")
-    # get_mean_std_variable_datatype()
+    get_mean_std_variable_datatype()
 
     print("================================= Delta non_lin_ind to others =================================")
     get_delta_non_lin_ind_to_others()

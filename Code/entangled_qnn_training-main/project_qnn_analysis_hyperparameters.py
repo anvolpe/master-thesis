@@ -12,6 +12,10 @@ from concurrent.futures import ProcessPoolExecutor
 from project_qnn_sgd_for_scipy import *
 from project_qnn_analysis import *
 
+'''
+    Analysis of hyperparameters for all optimizers (using boxplots)
+'''
+
 databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
 conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
 hyperparameters_per_opt = {"genetic_algorithm": ["maxiter", "crossover_type", "stop_criteria"], 
@@ -414,7 +418,7 @@ def create_preliminary_test_boxplots():
 if __name__ == "__main__":
     #switch to correct directory
     os.chdir("../../")
-    
+
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
 

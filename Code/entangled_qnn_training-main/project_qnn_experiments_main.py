@@ -18,6 +18,11 @@ import pyswarms as ps
 import re
 from project_qnn_experiments_optimizers import *
 
+'''
+    Main Experiment: Results are saved in qnn-experiments/experimental_results/results_{date}, 
+    where date is the start date of the experiment in YYYY-MM-DD format
+'''
+
 no_of_runs = 10
 num_layers = 1
 num_qubits = 2
@@ -31,20 +36,20 @@ learning_rates = [0.01, 0.001, 0.0001]
 
 def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_rank, unitary, databatches, opt_list=None):
     '''
-    Run all optimizer experiments for a single config & databatch combination.
+        Run all optimizer experiments for a single config & databatch combination.
 
-    Arguments:
-        conf_id (int): id of training data configuration (between 0 and 319)
-        run_id (int): id of experiment run (between 0 and 9)
-        data_type (String): datatype of training data
-        num_data_points (int): number of training data points
-        s_rank (int): Schmidt rank of training data
-        unitary (tensor): unitary for ansatz
-        databatches (list of tensors): batch of training data points
-        opt_list (list of functions, optional): list of functions, as defined in project_qnn_experiments_optimizers.py
+        Arguments:
+            conf_id (int): id of training data configuration (between 0 and 319)
+            run_id (int): id of experiment run (between 0 and 9)
+            data_type (String): datatype of training data
+            num_data_points (int): number of training data points
+            s_rank (int): Schmidt rank of training data
+            unitary (tensor): unitary for ansatz
+            databatches (list of tensors): batch of training data points
+            opt_list (list of functions, optional): list of functions, as defined in project_qnn_experiments_optimizers.py
 
-    Returns:
-        a dict containing all specifications of optimizers & results
+        Returns:
+            a dict containing all specifications of optimizers & results
     '''
     start = time.time()
     result_dict = {}
@@ -84,6 +89,7 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
             return cost.item()
         
          # Define the objective function specifically for Particle Swarm Optimization
+         # objective function must return one cost value for each particle in swarm
         def objective_for_pso(x):
             '''
             Adapted for Particle Swarm optimization.
@@ -96,7 +102,7 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
             n_particles = x.shape[0]
             cost_values = []
             for i in range(n_particles):
-                qnn.params = torch.tensor(x[i], dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape) # stimmt das???????
+                qnn.params = torch.tensor(x[i], dtype=torch.float64, requires_grad=True).reshape(qnn.params.shape)
                 cost = cost_func(data_points, y_true, qnn, device="cpu") 
                 cost_values.append(cost.item())
             return cost_values
@@ -104,37 +110,22 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
         # run optimizer experiments
         sgd_optimizers = [sgd, rmsprop, adam]
         if opt_list==None:
-            optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment]
+            optimizers = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment, particle_swarm_experiment, genetic_algorithm_experiment, diff_evolution_experiment]
         else:
             optimizers = opt_list
-        
-        # TODO: ProcessPoolExecutor (attempt to parallelize optimization execution) - does not work here due to pickling issues,
-        # as 'objective' is locally defined (AttributeError: Can't pickle local object 'test_experiment.<locals>.objective')
-        # Multiprocessing or class-based structure could be a solution.
-        # with ProcessPoolExecutor(cpu_count()) as exe:
-        # with multiprocessing.pool.Pool() as pool:
-        
         for opt in optimizers:
             if opt == sgd_experiment:
                 for variant in sgd_optimizers:
-                    #future = exe.submit(sgd_experiment, objective, initial_param_values, variant)
                     result = sgd_experiment(objective,initial_param_values,variant)
-                    #future = pool.map_async(sgd_experiment, (objective, initial_param_values, variant,))
                     opt_name = variant.__name__
-                    #result_dict[opt_name] = future.get()
-                    #result_dict[opt_name] = future.result()
                     result_dict[databatch_key][opt_name] = result
             elif opt == particle_swarm_experiment:
                 result = particle_swarm_experiment(objective_for_pso)
                 opt_name = opt.__name__.removesuffix('_experiment')
                 result_dict[databatch_key][opt_name] = result
             else:
-                #future = exe.submit(opt, objective, initial_param_values)
                 result = opt(objective,initial_param_values)
-                #future = pool.map_async(opt, (objective, initial_param_values,))
                 opt_name = opt.__name__.removesuffix('_experiment')
-                #result_dict[opt_name] = future.get()
-                #result_dict[opt_name] = future.result()
                 result_dict[databatch_key][opt_name] = result
     duration = np.round((time.time()-start),2)
     print(f"config {conf_id}, run {run_id}: {duration/60}min")
@@ -144,17 +135,16 @@ def single_optimizer_experiment(conf_id, run_id, data_type, num_data_points, s_r
 
 def run_all_optimizer_experiments(directory, opt_list=None):
     '''
-    Read all configurations of qnn and databatches from configurations_16_6_4_10_13_3_14.txt and run optimizer experiments 10 times
-    for every configuration & databatch combination for each optimizer in opt_list. 
-    If opt_list is None, experiments for all optimizers will be run.
+        Read all configurations of qnn and databatches from configurations_16_6_4_10_13_3_14.txt and run optimizer experiments 10 times
+        for every configuration & databatch combination for each optimizer in opt_list. 
+        If opt_list is None, experiments for all optimizers will be run.
 
-    Creates json file for every configuration that saves all specifications for configuration and optimizer results.
-    File is saved as "conf_{conf_id}_run_{run_id}_opt.json" in specified directory.
+        Creates json file for every configuration that saves all specifications for configuration and optimizer results.
+        File is saved as "conf_{conf_id}_run_{run_id}_opt.json" in specified directory.
 
-    Arguments:
-        directory (string): where json files are to be saved
-        opt_list (list of functions, optional): list of functions, as defined in project_qnn_experiments_optimizers.py
-
+        Arguments:
+            directory (string): where json files are to be saved
+            opt_list (list of functions, optional): list of functions, as defined in project_qnn_experiments_optimizers.py
     '''
     filename = "Code/entangled_qnn_training-main/experimental_results/configs/configurations_16_6_4_10_13_3_14.txt"
     file = open(filename, 'r')
@@ -190,7 +180,7 @@ def run_all_optimizer_experiments(directory, opt_list=None):
                     # create complete result dictionary (begins with result_dict_template)
                     dict = result_dict_template
                     dict.update(result_dict)
-                    #write results to json file
+                    # write results to json file
                     os.makedirs(directory, exist_ok=True)
                     file = open(f"{directory}/conf_{conf_id}_run_{run_id}_opt.json", mode="w")
                     json.dump(dict, file, indent=4)
@@ -201,16 +191,16 @@ def run_all_optimizer_experiments(directory, opt_list=None):
 
         else:
             var, val = line.split("=")
-            if(var == "conf_id"): conf_id = int(val) #config ID: between 0 and 329
-            elif(var == "data_type"): data_type = val # random, orthogonal, non_lin_ind, var_s_rank
+            if(var == "conf_id"): conf_id = int(val) #config ID: between 0 and 319
+            elif(var == "data_type"): data_type = val # data type: random, orthogonal, non_lin_ind, var_s_rank
             elif(var == "num_data_points"): num_data_points = int(val)  # number of data points: 1, 2, 3, 4
             elif(var == "s_rank"): s_rank = int(val) # Schmidt-Rank: 1, 2, 3, 4
             elif(var == "unitary"): 
                 val,_ = re.subn('\[|\]|\\n', '', val) 
-                unitary = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4))#unitary: 4x4 tensor
+                unitary = torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4)) # unitary: 4x4 tensor
             elif(var.startswith("data_batch_")): 
                 val,_ = re.subn('\[|\]|\\n', '', val)
-                databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) #data_points: 1x4x4 tensor
+                databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) # data_points: 1x4x4 tensor
 
 if __name__ == "__main__":
     # change current working directory to access correct files
@@ -220,6 +210,7 @@ if __name__ == "__main__":
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
     # run all experiments for all optimizers in opt_list
     opt_list = [nelder_mead_experiment, bfgs_experiment, cobyla_experiment, powell_experiment, slsqp_experiment, sgd_experiment, dual_annealing_experiment, genetic_algorithm_experiment, particle_swarm_experiment, diff_evolution_experiment]
-    directory = "experimental_results/results/optimizer_results/Test"
-    run_all_optimizer_experiments(opt_list=opt_list)
+    date = datetime.today().strftime('%Y-%m-%d')
+    directory = f"qnn-experiments/experimental_results/results_{date}"
+    run_all_optimizer_experiments(directory, opt_list=opt_list)
     print(f"total runtime (with callback): {np.round((time.time()-start)/60,2)}min") 
