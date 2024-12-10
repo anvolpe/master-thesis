@@ -1,0 +1,205 @@
+Attributes and Parameters:
+
+* x: The solution of the optimization.
+  Data Type: ndarray
+* success: Indicates whether the optimizer exited successfully.
+  Data Type: boolean
+* status: The termination status of the optimizer.
+  Data Type: integer
+* message: Description of the cause of termination.
+  Data Type: string
+* fun, jac, hess: Values of the objective function, Jacobian, and Hessian (or its inverse, if available).
+  Data Type: ndarray
+* hess_inv: Documentation for the Hessian inverse.
+  Data Type: Varies based on function used.
+* nfev, njev, nhev: Number of evaluations of the objective function, Jacobian, and Hessian, respectively.
+  Data Type: integer
+* nit: The number of iterations performed by the optimizer.
+  Data Type: integer
+* maxcv: The maximum constraint violation.
+  Data Type: float
+
+
+Options for Nelder-Mead:
+
+* disp: Set to True to print convergence messages.
+   Data Type: boolean
+* maxiter, maxfev: Maximum allowed number of iterations and function evaluations.
+   Data Type: integer
+* initial_simplex: The initial simplex. If given, it overrides x0.
+   Data Type: array_like of shape (N + 1, N)
+
+Additional Options:
+* return_all: Set to True to return a list of the best solutions at each iteration.
+  Data Type: boolean
+* xatol: The acceptable absolute error in xopt between iterations for convergence.
+  Data Type: float
+* fatol: The acceptable absolute error in func(xopt) between iterations for convergence.
+  Data Type: float
+* adaptive: If set to True, adapts algorithm parameters to the dimensionality of the problem.
+  Data Type: boolean
+* bounds: Bounds on the variables.
+  Data Type: Sequence
+
+Parameters Used:
+* maxiter, fatol, and xatol
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for COBYLA:
+
+-rhobeg = Reasonable initial changes to the variables. D. t. = float
+
+-tol = Final accuracy in the optimization. This is a lower bound on the size of the trust region. D. t. = float
+
+-disp = Set to True to print convergence messages. If False, verbosity is ignored as set to 0. D. t. = boolean 
+
+-maxiter = Maximum number of function evaluations. D. t. = integer 
+
+-catol = Tolerance for constraint violations. D. t. = float
+
+What we used: 
+
+- all mandatory 
+
+-maxiter,tol and catol
+ 
+---------------------------------------------------------------------------------------------------------------
+
+Options for BFGS:
+
+- disp = -"-
+
+- maxiter = -"-
+
+- gtol = Terminate successfully if gradient norm is less than gtol. D. t. = float
+
+- norm = Order of norm (Inf is max, -Inf is min). D. t. = float
+
+- eps = If jac is NONE the absolute step size used for numerical approximation of the jacobian via forward differences. D. t. = float || ndarray
+
+- return_all = Set to True to return a list of the best solution at each of the iterations.
+
+- xrtol = Relative tolerance for x. D. t. = float
+
+-c1 = Parameter for Armijo condition rule. D. t. = float (Default = 0)  
+
+-c2 = Parameter for curvature condition rule. D. t. = float (Default = 0.9)  
+
+Additional options:
+
+- finite_diff_rel_step = If the Jacobian approximation method is set to '2-point', '3-point', or 'cs', this parameter specifies the relative step size used for numerical computation of the Jacobian. D.t. = None or array_like,
+
+-hess_inv0 = Initial inverse hessian estimate, shape (n, n). If None (default) then the identity matrix is used. D. t. = None or ndarray
+
+What we used: 
+
+-maxiter, gtol, xrtol and eps
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for Powell:
+
+- maxiter, maxfev = -"-
+
+- direc = Initial set of direction vectors for the Powell method. D. t.= ndarray
+
+- ftol = Relative error in fun(xopt) acceptable for convergence. D. t. = float
+
+- xtol = Relative error in solution xopt acceptable for convergence. D. t. = float
+
+- disp = Set to True to print convergence messages. D. t. = boolean
+
+
+Additional options:
+
+- return_all = -"-
+
+What we used:
+maxiter, ftol and xtol
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for SLSQP:
+
+-ftol = -"-
+
+-eps = Step size used for numerical approximation of the Jacobian. D. t. = float
+
+-disp = -"-
+
+- maxiter = -"-
+
+Additional options:
+
+- finite_diff_rel_step = -"- 
+
+What we used:
+
+maxiter,ftol and eps 
+---------------------------------------------------------------------------------------------------------------
+
+Options for SGD(Stochastic Gradient Descent):
+
+-maxiter
+
+-learning_rate
+
+-eps
+
+What we used: 
+
+-maxiter,eps and learning_rate
+
+
+---------------------------------------------------------------------------------------------------------------
+
+Options for dual_annealing:  
+
+-func = The objective function to minimize. Returns callable
+
+-bounds = bounds for variables. Return sequence 
+
+
+Additional options:
+
+-args = Additional fixed parameters required to fully define the objective function.
+
+-maxiter = -"-
+
+-minimizer_kwargs = Keyword arguments for the local minimizer. A key option is method, specifying the minimization method. 
+If no arguments are provided, the default is 'L-BFGS-B' with the supplied bounds. Returns dict. 
+
+-initial_temp = The initial temperature. Default value is 5230. Range is (0.01, 5.e4). D.t. = float
+
+-restart_temp_ratio = During annealing, the temperature decreases until it reaches initial_temp * restart_temp_ratio, at which point reannealing is triggered.  D.t. = float
+
+-visit = Parameter for visiting distribution. Default value is 2.62. D.t. = float
+
+-accept = The acceptance parameter controls the probability of acceptance, with lower values reducing this probability. The default is -5.0, and it ranges from -1e4 to -5.
+
+-maxfun = Soft limit for the number of objective function calls. If exceeded during a local search, the algorithm will stop after completing the current search. Default is 1e7.
+
+-seed = If seed is None (or np.random), the numpy.random.RandomState singleton is used. If seed is an int, a new RandomState instance is used, seeded with seed. If seed is already a Generator or RandomState instance then that instance is used
+
+-no_local_search = If no_local_search is set to True, the algorithm will perform traditional Generalized Simulated Annealing without applying a local search strategy.
+
+-callback = A function with the signature callback(x, f, context) that is called for each minimum found. X and f are the coordinates and function value of the latest minimum and context is an integer in [0, 1, 2] indicating:
+
+0: Minimum found during the annealing process.
+1: Minimum found during the local search process.
+2: Minimum found during the dual annealing process.
+
+If the callback returns True, the algorithm will stop.
+
+What we used: 
+
+-objective, bounds and maxiter
+
+
+
+
+
+
+
+

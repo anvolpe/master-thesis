@@ -1,4 +1,8 @@
-Attributes and Parameters:
+All of the following information is taken from https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html, https://pygad.readthedocs.io/en/latest/ and https://pyswarms.readthedocs.io/en/latest/ .
+
+---------------------------------------------------------------------------------------------------------------
+
+Attributes and Parameters of optimization result in JSON files:
 
 * x: The solution of the optimization.
   Data Type: ndarray
@@ -16,185 +20,188 @@ Attributes and Parameters:
   Data Type: integer
 * nit: The number of iterations performed by the optimizer.
   Data Type: integer
-* maxcv: The maximum constraint violation.
-  Data Type: float
-
-
-Options for Nelder-Mead:
-
-* disp: Set to True to print convergence messages.
-   Data Type: boolean
-* maxiter, maxfev: Maximum allowed number of iterations and function evaluations.
-   Data Type: integer
-* initial_simplex: The initial simplex. If given, it overrides x0.
-   Data Type: array_like of shape (N + 1, N)
-
-Additional Options:
-* return_all: Set to True to return a list of the best solutions at each iteration.
-  Data Type: boolean
-* xatol: The acceptable absolute error in xopt between iterations for convergence.
-  Data Type: float
-* fatol: The acceptable absolute error in func(xopt) between iterations for convergence.
-  Data Type: float
-* adaptive: If set to True, adapts algorithm parameters to the dimensionality of the problem.
-  Data Type: boolean
-* bounds: Bounds on the variables.
-  Data Type: Sequence
-
-Parameters Used:
-* maxiter, fatol, and xatol
+* callback: List of intermediate function values (every iteration or every tenth iteration)
+  Data Type: list of floats
 
 ---------------------------------------------------------------------------------------------------------------
 
-Options for COBYLA:
+Hyperparameters for Nelder-Mead:
 
--rhobeg = Reasonable initial changes to the variables. D. t. = float
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* xatol: The acceptable absolute error in xopt between iterations for convergence.
+  Data Type: float
+  Values: 1e-5, 1e-10
+* fatol: The acceptable absolute error in func(xopt) between iterations for convergence.
+  Data Type: float
+  Values: 1e-5, 1e-10
+* callback: every tenth iteration
 
--tol = Final accuracy in the optimization. This is a lower bound on the size of the trust region. D. t. = float
+---------------------------------------------------------------------------------------------------------------
 
--disp = Set to True to print convergence messages. If False, verbosity is ignored as set to 0. D. t. = boolean 
+Hyperparameters for COBYLA:
 
--maxiter = Maximum number of function evaluations. D. t. = integer 
-
--catol = Tolerance for constraint violations. D. t. = float
-
-What we used: 
-
-- all mandatory 
-
--maxiter,tol and catol
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* tol: Final accuracy in the optimization. This is a lower bound on the size of the trust region. 
+  Data Type: float
+  Values: 1e-5, 1e-10
+* catol: Tolerance for constraint violations.
+  Data Type: float
+  Values: 1e-5, 1e-10
  
 ---------------------------------------------------------------------------------------------------------------
 
-Options for BFGS:
+Hyperparameters for BFGS:
 
-- disp = -"-
-
-- maxiter = -"-
-
-- gtol = Terminate successfully if gradient norm is less than gtol. D. t. = float
-
-- norm = Order of norm (Inf is max, -Inf is min). D. t. = float
-
-- eps = If jac is NONE the absolute step size used for numerical approximation of the jacobian via forward differences. D. t. = float || ndarray
-
-- return_all = Set to True to return a list of the best solution at each of the iterations.
-
-- xrtol = Relative tolerance for x. D. t. = float
-
--c1 = Parameter for Armijo condition rule. D. t. = float (Default = 0)  
-
--c2 = Parameter for curvature condition rule. D. t. = float (Default = 0.9)  
-
-Additional options:
-
-- finite_diff_rel_step = If the Jacobian approximation method is set to '2-point', '3-point', or 'cs', this parameter specifies the relative step size used for numerical computation of the Jacobian. D.t. = None or array_like,
-
--hess_inv0 = Initial inverse hessian estimate, shape (n, n). If None (default) then the identity matrix is used. D. t. = None or ndarray
-
-What we used: 
-
--maxiter, gtol, xrtol and eps
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* gtol: Terminate successfully if gradient norm is less than gtol.
+  Data Type: float
+  Values: 1e-5, 1e-10
+* xrtol: Relative tolerance for x.
+  Data Type: float
+  Values: 1e-5, 1e-10
+* eps: If jac is NONE the absolute step size used for numerical approximation of the jacobian via forward differences.
+  Data Type: float
+  Values: 1e-5, 1e-10  
 
 ---------------------------------------------------------------------------------------------------------------
 
-Options for Powell:
+Hyperparameters for Powell:
 
-- maxiter, maxfev = -"-
-
-- direc = Initial set of direction vectors for the Powell method. D. t.= ndarray
-
-- ftol = Relative error in fun(xopt) acceptable for convergence. D. t. = float
-
-- xtol = Relative error in solution xopt acceptable for convergence. D. t. = float
-
-- disp = Set to True to print convergence messages. D. t. = boolean
-
-
-Additional options:
-
-- return_all = -"-
-
-What we used:
-maxiter, ftol and xtol
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* ftol: Relative error in fun(xopt) acceptable for convergence.
+  Data Type: float
+  Values: 1e-5, 1e-10
+* xtol: Relative error in solution xopt acceptable for convergence.
+  Data Type: float
+  Values: 1e-5, 1e-10
 
 ---------------------------------------------------------------------------------------------------------------
 
-Options for SLSQP:
+Hyperparameters for SLSQP:
 
--ftol = -"-
-
--eps = Step size used for numerical approximation of the Jacobian. D. t. = float
-
--disp = -"-
-
-- maxiter = -"-
-
-Additional options:
-
-- finite_diff_rel_step = -"- 
-
-What we used:
-
-maxiter,ftol and eps 
----------------------------------------------------------------------------------------------------------------
-
-Options for SGD(Stochastic Gradient Descent):
-
--maxiter
-
--learning_rate
-
--eps
-
-What we used: 
-
--maxiter,eps and learning_rate
-
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* ftol: Relative error in fun(xopt) acceptable for convergence.
+  Data Type: float
+  Values: 1e-5, 1e-10
+* eps: Step size used for numerical approximation of the Jacobian.
+  Data Type: float
+  Values: 1e-5, 1e-10  
 
 ---------------------------------------------------------------------------------------------------------------
 
-Options for dual_annealing:  
+Hyperparameters for SGD, Adam and RMSprop:
 
--func = The objective function to minimize. Returns callable
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* learning_rate: Step size in each iteration.
+  Data Type: float
+  Values: 0.01, 0.001, 0.0001
+* eps: Correction term for numerical stability to prevent division by zero (only used for Adam and RMSprop).
+  Data Type: float
+  Values: 1e-5, 1e-10 
 
--bounds = bounds for variables. Return sequence 
+---------------------------------------------------------------------------------------------------------------
 
+Hyperparameters for Dual Annealing:  
 
-Additional options:
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* bounds: Bounds for solution x.
+  Data Type: array of float
+  Value: [0, 2π] across all dimensions (determined during preliminary testing)
 
--args = Additional fixed parameters required to fully define the objective function.
+---------------------------------------------------------------------------------------------------------------
 
--maxiter = -"-
+Hyperparameters for Genetic Algorithm:  
 
--minimizer_kwargs = Keyword arguments for the local minimizer. A key option is method, specifying the minimization method. 
-If no arguments are provided, the default is 'L-BFGS-B' with the supplied bounds. Returns dict. 
+* maxiter: Maximum allowed number of iterations. Iterations are also called generations for Genetic Algorithm.
+  Data Type: integer
+  Values: 50, 100, 500, 1000
+* num_parents_mating: Number of parents mating in each generation to create the next generation of solutions.
+  Data Type: integer
+  Value: 4
+* sol_per_pop: Number of solutions in the population.
+  Data Type: integer
+  Value: 8
+* keep_parents: Number of parents in the current population to be used in the next population. See pygad Documentation for further info.
+  Data Type: integer
+  Value: 1
+* mutation_percent_genes: Percentage of genes to mutate.
+  Data Type: integer
+  Value: 10
+* parent_selection_type: Selection method of the parents in each generation. Description of different types available in paper.
+  Data Type: String
+  Value: "sss" (determined during preliminary testing)
+* crossover_type: Recombination method of the parents, which results in a child. Description of different types available in paper.
+  Data Type: String
+  Values: "single_point", "two_points", "uniform", "scattered"
+* mutation_type: Mutation method. Mutation introduces diversity into the population of solutions. Description of different types available in paper.
+  Data Type: String
+  Value: "random" (determined during preliminary testing)
+* stop_criteria: Termination criterion. If "saturate_n": termination if achieved function value has not improved after n iterations.
+  Data Type: String
+  Value: "saturate_50", None
 
--initial_temp = The initial temperature. Default value is 5230. Range is (0.01, 5.e4). D.t. = float
+---------------------------------------------------------------------------------------------------------------
 
--restart_temp_ratio = During annealing, the temperature decreases until it reaches initial_temp * restart_temp_ratio, at which point reannealing is triggered.  D.t. = float
+Hyperparameters for Particle Swarm Optimization:  
 
--visit = Parameter for visiting distribution. Default value is 2.62. D.t. = float
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* n_particles: Number of particles in the swarm.
+  Data Type: integer
+  Value: 60 (determined during preliminary testing)
+* w: Inertia value of swarm's movement.
+  Data Type: float
+  Value: 0.9 (determined during preliminary testing)
+* c1: Cognitive value of a particle in the swarm.
+  Data Type: float
+  Value: 0.5 (determined during preliminary testing)
+* c2: Social value of a particle in the swarm.
+  Data Type: float
+  Value: 2 (determined during preliminary testing)
+* ftol: Relative error in fun(xopt) acceptable for convergence.
+  Data Type: float
+  Values: 1e-5, -np.Infinity
+* ftol_iter: Number of iterations over which the relative error in fun(xopt) is acceptable for convergence.
+  Data Type: integer
+  Value: 50
 
--accept = The acceptance parameter controls the probability of acceptance, with lower values reducing this probability. The default is -5.0, and it ranges from -1e4 to -5.
+---------------------------------------------------------------------------------------------------------------
 
--maxfun = Soft limit for the number of objective function calls. If exceeded during a local search, the algorithm will stop after completing the current search. Default is 1e7.
+Hyperparameters for Differential Evolution:  
 
--seed = If seed is None (or np.random), the numpy.random.RandomState singleton is used. If seed is an int, a new RandomState instance is used, seeded with seed. If seed is already a Generator or RandomState instance then that instance is used
-
--no_local_search = If no_local_search is set to True, the algorithm will perform traditional Generalized Simulated Annealing without applying a local search strategy.
-
--callback = A function with the signature callback(x, f, context) that is called for each minimum found. X and f are the coordinates and function value of the latest minimum and context is an integer in [0, 1, 2] indicating:
-
-0: Minimum found during the annealing process.
-1: Minimum found during the local search process.
-2: Minimum found during the dual annealing process.
-
-If the callback returns True, the algorithm will stop.
-
-What we used: 
-
--objective, bounds and maxiter
+* maxiter: Maximum allowed number of iterations.
+  Data Type: integer
+  Values: 100, 500, 1000
+* bounds: Bounds for solution x.
+  Data Type: array of float
+  Value: [0, 2π] across all dimensions
+* recombination: Recombination Constant, also called crossover probability. Increasing this value allows a larger number of mutants
+                 to progress into the next generation, but at the risk of population stability.
+  Data Type: float
+  Values: 0.8 (determined during preliminary testing)                
+* popsize: A multiplier for setting the total population size. The population has popsize * (N - N_equal) individuals, 
+           where N-N_equal is the total number of free parameters (in our case N_equal = 0 and N = 6).
+  Data Type: integer
+  Value: 10 (determined during preliminary testing)
+* tol: Relative tolerance for convergence, the solving stops when np.std(pop) <= atol + tol * np.abs(np.mean(population_energies)),
+       where and `atol` and `tol` are the absolute and relative tolerance respectively.
+  Data Type: float
+  Values: 1e-5 (determined during preliminary testing)
 
 
 
