@@ -32,14 +32,14 @@ combinations_to_skip = [["non_lin_ind","2","3"],["non_lin_ind","3","3"],["non_li
 opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD', 
               'adam':'Adam', 'rmsprop':'RMSprop', 'bfgs':'BFGS','slsqp':'SLSQP',
               'dual_annealing':'Dual Annealing','cobyla':'COBYLA',
-              'genetic_algorithm':'Genetic Algorithm', 'particle_swarm': 'Particle Swarm Optimization',
-              'diff_evolution':'Differential Evolution'}
+              'genetic_algorithm':'Genetic Alg.', 'particle_swarm': 'PSO',
+              'diff_evolution':'Diff. Evolution'}
 
 datatype_list = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
 num_data_points_list = ['1', '2', '3', '4']
 s_rank_list = ['1', '2', '3', '4']
 maxiter_list = [1000]
-dpi=800 # change if resolution too high
+dpi=400 # change if resolution too high
 
 mean_fun_values = pd.DataFrame(columns=["data_type", "s_rank", "num_data_points"]+list(opt_titles.keys()))
 
@@ -558,7 +558,7 @@ def create_min_max_boxplots(res_min, res_max, save_path):
         os.makedirs(save_path)
 
     for bounds_id in bounds.keys():
-        plt.figure(figsize=(12.8,9.6))
+        plt.figure(figsize=(9.2,6))
         # plot vertical grey lines of bounds, for "no bounds" plot [0, 2*pi]
         if(bounds_id in bounds_limits.keys()):
             interval = bounds_limits[bounds_id]
@@ -578,21 +578,21 @@ def create_min_max_boxplots(res_min, res_max, save_path):
         c2 = list(matplotlib.colors.to_rgba("skyblue"))
         c2[3] = 0.5 # make more transparent
         c2 = tuple(c2)
-        plt.boxplot(data_min.values(), sym="", patch_artist=True, boxprops=dict(facecolor=c1,hatch='oo'), medianprops=dict(linewidth=2), vert=False,positions=x-100,widths=200)
-        plt.boxplot(data_max.values(), sym="", patch_artist=True, boxprops=dict(facecolor=c2,hatch='//'), medianprops=dict(linewidth=2), vert=False,positions=x+100,widths=200)
+        plt.boxplot(data_min.values(), sym="", patch_artist=True, boxprops=dict(facecolor=c1,hatch='oo'), medianprops=dict(linewidth=2), vert=False,positions=x-100,widths=220)
+        plt.boxplot(data_max.values(), sym="", patch_artist=True, boxprops=dict(facecolor=c2,hatch='//'), medianprops=dict(linewidth=2), vert=False,positions=x+100,widths=220)
         
         # legend
         dg_patch = matplotlib.patches.Patch(facecolor=c1,hatch='o', label='minimal x values')
         blue_patch = matplotlib.patches.Patch(facecolor=c2,hatch=r'//', label='maximal x values')
-        plt.legend(handles=[dg_patch,blue_patch], labelspacing=1, handlelength=2, fontsize=18) 
-        plt.xticks(fontsize=18)
+        plt.legend(handles=[dg_patch,blue_patch], labelspacing=1, handlelength=2, fontsize=10) 
+        plt.xticks(fontsize=12)
         if(bounds_id == "bounds_0"):
-            plt.yticks(ticks=x,labels=data_min.keys(),fontsize=16)
+            plt.yticks(ticks=x,labels=data_min.keys(),fontsize=12)
         else:
-            plt.yticks(ticks=x,labels=data_min.keys(),fontsize=14)
-        plt.ylabel('Optimizer',fontsize=28)
-        plt.xlabel('Minimal (lower) and maximal (upper) x-values',fontsize=28)
-        plt.title(f"Minimal and Maximal x-Values for bounds: {bounds[bounds_id]}",fontsize=30)
+            plt.yticks(ticks=x,labels=data_min.keys(),fontsize=10)
+        plt.ylabel('Optimizer',fontsize=14)
+        plt.xlabel('Minimal (lower) and maximal (upper) x-values',fontsize=14)
+        plt.title(f"Minimal and Maximal x-Values for bounds: {bounds[bounds_id]}",fontsize=20)
         plt.grid(True)
         file_path = os.path.join(save_path, f'{bounds_id}_boxplot_no_outliers.png')
         plt.savefig(file_path, dpi=dpi)
@@ -665,7 +665,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
     #colors for each config id
     #cmap = matplotlib.colormaps["tab10"]
     cmap = ['skyblue', 'darkseagreen', 'green', 'grey']
-    plt.figure(figsize=(12.8,9.6))
+    plt.figure(figsize=(7,5.3))
     c = 0 # needed to determine correct color
     for param_value in mean_fun_data.keys():
         #color = cmap(c/4) #use when loading a colormap from matplotplib
@@ -683,17 +683,17 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         plt.plot(x,y, color=color, label=label)
         c += 1
     plt.ylim(0,1)
-    plt.xlabel('Iteration',fontsize=28)
-    plt.ylabel('Function value',fontsize=28)
-    plt.xticks(fontsize=22)
-    plt.yticks(fontsize=22)
-    plt.legend(fontsize=22)
-    if(opt in ['sgd', 'adam', 'rmsprop'] and learning_rate is not None):
-        plt.title(title,fontsize=26)
+    plt.xlabel('Iteration',fontsize=18)
+    plt.ylabel('Function value',fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=14)
+    if(opt in ['sgd', 'adam', 'rmsprop']):
+        plt.title(title,fontsize=13)
     else:
-        plt.title(title,fontsize=30)
+        plt.title(title,fontsize=16)
     plt.grid(True)
-    file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png') # TODO: better naming system
+    file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png')
     plt.savefig(file_path, dpi=dpi)
     plt.close()
 
@@ -1053,13 +1053,13 @@ if __name__ == "__main__":
         os.chdir("../../")
     
     # prepare data for convergence plots
-    extract_all_data_from_json_files()
-    fill_mean_fun_values()
+    #extract_all_data_from_json_files()
+    #fill_mean_fun_values()
     # make all convergence plots
-    make_all_convergence_plots()
+    #make_all_convergence_plots()
 
     # compute all relevant convergence plot info (like achieved function values, delta, STD, etc.)
-    compute_convergence_plot_information()
+    #compute_convergence_plot_information()
 
     # makes boxplots for different bounds values (preliminary tests)
     make_bounds_boxplots()

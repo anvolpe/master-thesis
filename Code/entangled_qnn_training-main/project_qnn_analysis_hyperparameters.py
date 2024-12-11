@@ -16,7 +16,7 @@ from project_qnn_analysis import *
     Analysis of hyperparameters for all optimizers (using boxplots)
 '''
 
-dpi=800 # lower resolution (of plots) if necessary
+dpi=400 # lower resolution (of plots) if necessary
 
 databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
 conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
@@ -269,7 +269,7 @@ def load_fun_nit_for_c1_c2_PSO(data, prelim=False):
                     for j in range(0,len(dict)-1):
                         c1 = dict[str(j)]["c1"]
                         c2 = dict[str(j)]["c2"]
-                        c1_c2_value = f"[{c1},{c2}]"
+                        c1_c2_value = f"({c1},{c2})"
                         if c1_c2_value not in fun_per_hyperparameter_value:
                             fun_per_hyperparameter_value[c1_c2_value] = []
                         if c1_c2_value not in nit_per_hyperparameter_value:
@@ -329,13 +329,13 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
                 text[par] += f"{par} = {value}: median={median},    min={min},  max={max},  std={std}\n"
         # Boxplot for function values
         file_path = os.path.join(path, f'{opt}_boxplot_fun_{par}.png')
-        plt.figure(figsize=(12.8,9.6))
+        plt.figure(figsize=(7.5,5.3))
         plt.boxplot(fun_dict.values())
-        plt.xticks(range(1, len(fun_dict.keys()) + 1), fun_dict.keys(),fontsize=22)
-        plt.yticks(fontsize=22)
-        plt.xlabel(par,fontsize=28)
-        plt.ylabel('Function value',fontsize=28)
-        plt.title(f"Achieved loss function values per values of \n {par} for {opt_titles[opt]}",fontsize=30)
+        plt.xticks(range(1, len(fun_dict.keys()) + 1), fun_dict.keys(),fontsize=14)
+        plt.yticks(fontsize=14)
+        plt.xlabel(par,fontsize=16)
+        plt.ylabel('Function value',fontsize=16)
+        plt.title(f"Achieved loss function values per values of \n {par} for {opt_titles[opt]}",fontsize=16)
         plt.grid(True)
         plt.savefig(file_path, dpi=dpi)
         plt.close()
@@ -343,16 +343,16 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
 
         # Boxplot for number of iterations
         file_path = os.path.join(path, f'{opt}_boxplot_{nit_name_short}_{par}.png')
-        plt.figure(figsize=(12.8,9.6))
+        plt.figure(figsize=(7.5,5.3))
         plt.boxplot(nit_dict.values())
-        plt.xticks(range(1, len(nit_dict.keys()) + 1), nit_dict.keys(),fontsize=22)
-        plt.yticks(fontsize=22)
-        plt.xlabel(par,fontsize=28)
-        plt.ylabel(f'Number of {nit_name}',fontsize=28)
+        plt.xticks(range(1, len(nit_dict.keys()) + 1), nit_dict.keys(),fontsize=14)
+        plt.yticks(fontsize=14)
+        plt.xlabel(par,fontsize=16)
+        plt.ylabel(f'Number of {nit_name}',fontsize=16)
         title = f"Number of {nit_name} per values of \n {par} for {opt_titles[opt]}"
         if(maxiter==True):
             title += ", maxiter=1000"
-        plt.title(title,fontsize=28)
+        plt.title(title,fontsize=16)
         plt.grid(True)
         plt.savefig(file_path,dpi=dpi)
         plt.close()
@@ -427,7 +427,7 @@ if __name__ == "__main__":
 
     # create PSO boxplot: achieved function values for different numbers of particles and 
     save_path = "qnn-experiments/plots/hyperparameter_plots/preliminary_test/hyperparameters_GA_DE_PSO/particle_swarm"
-    create_multi_PSO_boxplot(save_path)
+    #create_multi_PSO_boxplot(save_path)
     # create all other hyperparameter boxplots for final experiment
     create_all_hyperparameter_boxplots()
 
