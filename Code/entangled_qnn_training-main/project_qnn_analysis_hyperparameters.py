@@ -16,6 +16,8 @@ from project_qnn_analysis import *
     Analysis of hyperparameters for all optimizers (using boxplots)
 '''
 
+dpi=800 # lower resolution (of plots) if necessary
+
 databatches = ["databatch_0", "databatch_1", "databatch_2", "databatch_3", "databatch_4"]
 conf_ids_to_skip = [190, 191, 192, 193, 194, 210, 211, 212, 213, 214, 230, 231, 232, 233, 234]
 hyperparameters_per_opt = {"genetic_algorithm": ["maxiter", "crossover_type", "stop_criteria"], 
@@ -34,7 +36,7 @@ hyperparameters_per_opt = {"genetic_algorithm": ["maxiter", "crossover_type", "s
 
 hyperparameters_per_opt_prelim = {"genetic_algorithm": ["crossover_type", "parent_selection_type", "mutation_type"], 
                                 "particle_swarm": ["maxiter", "ftol", "n_particles", "c1_c2", "w"],
-                                "diff_evolution": ["maxiter", "popsize", "recombination"]
+                                "diff_evolution": ["maxiter", "popsize", "recombination", "tol"]
                                 }
 
 opt_titles = {'nelder_mead': 'Nelder-Mead', 'powell':'Powell', 'sgd':'SGD', 
@@ -48,7 +50,7 @@ def load_fun_nit_per_bounds_data(opt, prelim=False):
     '''
         For a specific optimizer {opt}: Creates one dictionary that contains a list of achieved function values after optimization
         per interval for the hyperparameter bounds and another dictionary with number of iterations needed.
-        Data source: "experimental_results/results/optimizer_results/bounds_2024-07-29"
+        Data source: "qnn-experiments/optimizer_results/bounds_2024-07-29"
 
         Arguments:
             opt (String): optimizer name
@@ -61,7 +63,7 @@ def load_fun_nit_per_bounds_data(opt, prelim=False):
     fun_per_bounds = {}
     nit_per_bounds = {}
     #load json data
-    directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
+    directory = "qnn-experiments/optimizer_results/bounds_2024-07-29"
     data = load_json_data(directory)
     bounds_values = {"bounds_0": "none", "bounds_1": "$[0,2\pi]$", "bounds_2": "$[0,4\pi]$", "bounds_3": "$[-2\pi, 2\pi]$", "bounds_4": "$[-4\pi, 4\pi]$"}
 
@@ -335,7 +337,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
         plt.ylabel('Function value',fontsize=28)
         plt.title(f"Achieved loss function values per values of \n {par} for {opt_titles[opt]}",fontsize=30)
         plt.grid(True)
-        plt.savefig(file_path, dpi=1200)
+        plt.savefig(file_path, dpi=dpi)
         plt.close()
 
 
@@ -352,7 +354,7 @@ def create_hyperparameter_boxplots(path,json_data, opt, hyperparameters, prelim=
             title += ", maxiter=1000"
         plt.title(title,fontsize=28)
         plt.grid(True)
-        plt.savefig(file_path,dpi=1200)
+        plt.savefig(file_path,dpi=dpi)
         plt.close()
 
     if(more_info==True):
@@ -398,7 +400,7 @@ def create_preliminary_test_boxplots():
     '''
         Create hyperparameter boxplots for preliminary tests for Dual Annealing, PSO, Genetic Algorithm and Differential Evolution
     '''
-    directory = "experimental_results/results/optimizer_results/bounds_2024-07-29"
+    directory = "qnn-experiments/optimizer_results/bounds_2024-07-29"
     save_path = "qnn-experiments/plots/hyperparameter_plots/preliminary_test/bounds/dual_annealing"
     json_data = load_json_data(directory)
     create_hyperparameter_boxplots(save_path,json_data, "dual_annealing", ["bounds"], prelim=False, more_info=False)
@@ -416,8 +418,9 @@ def create_preliminary_test_boxplots():
 
 
 if __name__ == "__main__":
-    #switch to correct directory
-    os.chdir("../../")
+    # change current working directory to access correct files if necessary
+    if str(os.getcwd()).endswith("Code/entangled_qnn_training-main"):
+        os.chdir("../../")
 
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")

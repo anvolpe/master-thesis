@@ -307,8 +307,9 @@ def get_delta_non_lin_ind_to_others():
     print(mean_delta)
     
 if __name__ == "__main__":
-    # change current working directory to access correct files
-    os.chdir("../../")
+    # change current working directory to access correct files if necessary
+    if str(os.getcwd()).endswith("Code/entangled_qnn_training-main"):
+        os.chdir("../../")
 
     # print("Further Convergence Plot info")
     # print("================================= Check Deltas =================================")

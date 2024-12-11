@@ -203,8 +203,9 @@ def run_all_optimizer_experiments(directory, opt_list=None):
                 databatches.append(torch.from_numpy(np.fromstring(val,dtype=complex,sep=',').reshape(-1,4,4))) # data_points: 1x4x4 tensor
 
 if __name__ == "__main__":
-    # change current working directory to access correct files
-    os.chdir("../../")
+    # change current working directory to access correct files if necessary
+    if str(os.getcwd()).endswith("Code/entangled_qnn_training-main"):
+        os.chdir("../../")
 
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")

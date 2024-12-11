@@ -39,6 +39,7 @@ datatype_list = ['random', 'orthogonal', 'non_lin_ind', 'var_s_rank']
 num_data_points_list = ['1', '2', '3', '4']
 s_rank_list = ['1', '2', '3', '4']
 maxiter_list = [1000]
+dpi=800 # change if resolution too high
 
 mean_fun_values = pd.DataFrame(columns=["data_type", "s_rank", "num_data_points"]+list(opt_titles.keys()))
 
@@ -594,7 +595,7 @@ def create_min_max_boxplots(res_min, res_max, save_path):
         plt.title(f"Minimal and Maximal x-Values for bounds: {bounds[bounds_id]}",fontsize=30)
         plt.grid(True)
         file_path = os.path.join(save_path, f'{bounds_id}_boxplot_no_outliers.png')
-        plt.savefig(file_path, dpi=1200)
+        plt.savefig(file_path, dpi=dpi)
         plt.close()
 
 def make_bounds_boxplots():
@@ -693,7 +694,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data, mean_nit_data, opt,
         plt.title(title,fontsize=30)
     plt.grid(True)
     file_path = os.path.join(save_path, f'{opt}_convergence_fun_{data_type}{num_data_points}{s_rank}.png') # TODO: better naming system
-    plt.savefig(file_path, dpi=1200)
+    plt.savefig(file_path, dpi=dpi)
     plt.close()
 
 def calc_convergence_data(datatype, num_data_points, s_rank):
@@ -870,13 +871,11 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
     # adapt colors:
     c = []
     color_names = ["darkseagreen", "green", "skyblue"]
-    i=0
     for color in color_names:
-        c_temp = list(matplotlib.colors.to_rgba("skyblue"))
+        c_temp = list(matplotlib.colors.to_rgba(color))
         c_temp[3] = 0.5 # make more transparent
         c_temp = tuple(c_temp)
-        c[i] = c_temp
-        i+=1
+        c.append(c_temp)
 
     bp1=plt.boxplot(valuesGradFree,positions=positions1, patch_artist=True, boxprops=dict(facecolor=c[0],hatch='oo'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths )
     bp2=plt.boxplot(values_EVO,positions=positions2, patch_artist=True, boxprops=dict(facecolor=c[1],hatch='xx'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths)
@@ -902,23 +901,7 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
     plt.grid(True)
     plt.tight_layout()
     file_path = os.path.join(boxplot_save_path, title+'_bps.png')
-    fig.savefig(file_path, dpi=1200)
-    '''
-    num=1
-    outdict={}
-    for bp in bps:
-        print(num)
-        whisker_ends = [item.get_ydata()[1] for item in bp['whiskers']]
-        medians = [item.get_ydata()[1] for item in bp['medians']]
-        #boxes = [item.get_ydata()[1] for item in bp['boxes']]
-        #fliers = [item.get_ydata() for item in bp['fliers']]
-        print("Whisker ends:", whisker_ends)
-        print("Medians:", medians)
-        outdict[num]=medians
-        num +=1
-    print(outdict)
-    print("Fliers:", fliers)
-    '''
+    fig.savefig(file_path, dpi=dpi)
 
     plt.close()
 
@@ -1065,8 +1048,9 @@ def makeCategoryBoxplots(xAxisName):
 
 
 if __name__ == "__main__":
-    # change current working directory to access correct files
-    os.chdir("../../")
+    # change current working directory to access correct files if necessary
+    if str(os.getcwd()).endswith("Code/entangled_qnn_training-main"):
+        os.chdir("../../")
     
     # prepare data for convergence plots
     extract_all_data_from_json_files()

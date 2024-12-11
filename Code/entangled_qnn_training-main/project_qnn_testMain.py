@@ -34,7 +34,7 @@ opt_info = {"nelder_mead": "maxiter (100, 500, 1000), fatol (1e-5, 1e-10), and x
               "slsqp":"maxiter (50, 100, 1000), ftol (1e-5, 1e-10) and eps (1e-5, 1e-10)",
               "dual_annealing":"maxiter (50, 100, 1000)",
               "cobyla":"maxiter (50, 100, 1000), tol (1e-5, 1e-10) and catol (1e-5, 1e-10)",
-              "genetic_algorithm":"maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered), stop_criteria (None, saturate_50)", 
+              "genetic_algorithm":"maxiter (50, 100, 1000), crossover_type (single_point, two_points, uniform, scattered)", 
               "particle_swarm": "maxiter (100, 500, 1000), ftol (1e-5, -np.Infinity)",
               "diff_evolution":"maxiter (100, 500, 1000)"}
 
@@ -226,6 +226,31 @@ def change_stop_criteria_GA(directory):
                 json.dump(data, file, indent=4)
             del data
 
+def change_variable_params_GA(directory):
+    for filename in os.listdir(directory):
+        if filename.endswith('.json'):
+            file_path = os.path.join(directory, filename)
+            #print(f"Lade Datei: {file_path}")
+            data = []
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+            print(data["conf_id"])
+            for databatch in db_list:
+                try:
+                    opt = "genetic_algorithm"
+                    d = data[databatch][opt]
+                    d["variable hyperparams"] = opt_info[opt]
+                    data[databatch][opt] = d
+                    del d
+                except KeyError as e:
+                    #continue
+                    print(f"Schlüssel fehlt: {e}")
+
+            with open(file_path, 'w') as file: 
+                json.dump(data, file, indent=4)
+            del data
+
+
 def convergence_plot_per_optimizer(save_path, mean_fun_data):
     '''
         Convergence plot for mean callback values where exactly one parameter of data_type, num_data_points or s_rank is None and thus variable.
@@ -304,8 +329,7 @@ def convergence_plot_per_optimizer(save_path, mean_fun_data):
     plt.close()
 
 if __name__ == "__main__":
-    directory = "qnn-experiments/optimizer_results/final_experiment_2024-10/experiment_part2_GA_PSO_DE"
-    change_stop_criteria_GA(directory)
+    print(os.getcwd())
     
 
 

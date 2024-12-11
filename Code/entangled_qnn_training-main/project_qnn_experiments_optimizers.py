@@ -498,9 +498,9 @@ def diff_evolution_experiment(objective,initial_param_values,bounds=default_boun
     run_n = 0
 
     # hyperparameters for Differential Evolution for preliminary tests:
-    # recombinationIndices={0.7,0.8,0.9,1}
-    # popSizes={5,10,15}
-    # tols={1e-10,1e-5,0.01}
+    # recombinationIndices={0.8, 0.95}
+    # popSizes={5,10}
+    # tols={1e-10,1e-5}
 
     # hyperparameters for Differential Evolution for final experiment:
     recombinationIndices={0.8}

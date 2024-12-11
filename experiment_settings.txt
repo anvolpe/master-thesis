@@ -156,7 +156,7 @@ Hyperparameters for Genetic Algorithm:
 * mutation_type: Mutation method. Mutation introduces diversity into the population of solutions. Description of different types available in paper.
   Data Type: String
   Value: "random" (determined during preliminary testing)
-* stop_criteria: Termination criterion. "saturate_n" causes termination if achieved function value has not improved after n iterations.
+* stop_criteria: Termination criterion. "saturate_n" causes termination if achieved function value has not changed for n iterations.
   Data Type: String
   Value: "saturate_50"
 * callback: every iteration

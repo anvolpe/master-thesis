@@ -156,6 +156,10 @@ def test_single_optimizer(callback: bool):
 
 
 if __name__ == "__main__":
+    # change current working directory to access correct files if necessary
+    if str(os.getcwd()).endswith("Code/entangled_qnn_training-main"):
+        os.chdir("../../")
+
     start = time.time()
     print(f"start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
     test_single_optimizer(False)
