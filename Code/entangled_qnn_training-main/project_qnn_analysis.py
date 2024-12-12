@@ -905,6 +905,22 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
 
     plt.close()
 
+#outputs a seperate legend image for the optimizer category boxplots with matching colorscheme
+def getCategoryBoxplotLegend():
+    # Manuelle Legende erstellen
+    fig_legend = plt.figure(figsize=(2, 1)) 
+    ax_legend = fig_legend.add_subplot(111)
+    ax_legend.axis('off')
+
+    # Patches analog zu Boxplotcolorscheme definieren
+    legend_elements = [
+        Patch(facecolor='darkseagreen',hatch='oo', label='gradient-free',linewidth=3),
+        Patch(facecolor='green',hatch='xx', label='evolution-based',linewidth=3),
+        Patch(facecolor='skyblue',hatch=r'//', label='gradient-based',linewidth=3)
+    ]
+    ax_legend.legend(handles=legend_elements, loc='center', frameon=True, fontsize=12, markerscale=15)
+    fig_legend.savefig("manual_legend.png", dpi=200, bbox_inches='tight')
+
 def extract_func_data(directory, conf_id_list,every_fifth_config=False,target_learning_rate=None):
     '''
         For each entry in json_data (each configuration) extract list of 
