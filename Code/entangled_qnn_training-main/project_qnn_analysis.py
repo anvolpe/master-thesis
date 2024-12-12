@@ -22,6 +22,7 @@ import pandas as pd
 from scipy.optimize import minimize, dual_annealing
 import re
 
+
 '''
     Analysis of final experiment for all optimizers and optimizer categories (convergence plots, boxplots, etc.).
 '''
@@ -840,17 +841,12 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
             iterList (list): values for x Axis
             labels (list, optional): names of each of the three boxplots, default: ['Gradient-Free','Evolution-Based','Gradient-Based']
     '''
-    #data_GradFree={1:[0.2,0.8],2:[0.2,0.8],3:[0.2,0.8],4:[0.2,0.8]} 
-    #data_GradBased={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
-    #data_EVO={1:[0.2,0.4],2:[0.2,0.4],3:[0.2,0.4],4:[0.2,0.4]} 
     if not os.path.exists(boxplot_save_path):
         os.makedirs(boxplot_save_path)
 
     
     fig, ax = plt.subplots(figsize=(10, 6))   
-    #plt.figure()
-    
-    #labels=list(data_GradFree.keys())
+
     if(xAxisName=='maxiter'):
         positions1=[0.80, 2.10, 3.40]
         positions2=[1.20, 2.50, 3.80]
@@ -868,40 +864,32 @@ def plot_boxplots(boxplot_save_path, title,data_GradFree,data_EVO,data_GradBased
     values_EVO = [data_EVO[key] for key in data_EVO.keys()]
     valuesGradBased = [data_GradBased[key] for key in data_GradBased.keys()]
     
-    # adapt colors:
-    c = []
-    color_names = ["darkseagreen", "green", "skyblue"]
-    for color in color_names:
-        c_temp = list(matplotlib.colors.to_rgba(color))
-        c_temp[3] = 0.5 # make more transparent
-        c_temp = tuple(c_temp)
-        c.append(c_temp)
+    # adapt colors
+    c1 = list(matplotlib.colors.to_rgba("darkseagreen"))
+    c1[3] = 0.5 # make more transparent
+    c1 = tuple(c1)
 
-    bp1=plt.boxplot(valuesGradFree,positions=positions1, patch_artist=True, boxprops=dict(facecolor=c[0],hatch='oo'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths )
-    bp2=plt.boxplot(values_EVO,positions=positions2, patch_artist=True, boxprops=dict(facecolor=c[1],hatch='xx'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths)
-    bp3=plt.boxplot(valuesGradBased,positions=positions3, patch_artist=True, boxprops=dict(facecolor=c[2],hatch='//'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths)
+    c2 = list(matplotlib.colors.to_rgba("green"))
+    c2[3] = 0.5 # make more transparent
+    c2 = tuple(c2)
+
+    c3 = list(matplotlib.colors.to_rgba("skyblue"))
+    c3[3] = 0.5 # make more transparent
+    c3 = tuple(c3)
+
+    bp1=plt.boxplot(valuesGradFree,positions=positions1, patch_artist=True, boxprops=dict(facecolor=c1,hatch='oo'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths )
+    bp2=plt.boxplot(values_EVO,positions=positions2, patch_artist=True, boxprops=dict(facecolor=c2,hatch='xx'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths)
+    bp3=plt.boxplot(valuesGradBased,positions=positions3, patch_artist=True, boxprops=dict(facecolor=c3,hatch='//'), medianprops=dict(linewidth=2), manage_ticks=True ,widths=widths)
     bps=[bp1,bp2,bp3]
     
-    plt.xticks(ticks=x, labels=iterList)
-    dg_patch = matplotlib.patches.Patch(facecolor=c[0],hatch='o', label=labels[0])
-    green_patch =matplotlib.patches.Patch(facecolor=c[1],hatch='x', label=labels[1])
-
-    blue_patch = matplotlib.patches.Patch(facecolor=c[2],hatch=r'//', label=labels[2])
-    leg=plt.legend(handles=[dg_patch,green_patch,blue_patch], labelspacing=1, handlelength=3) 
-
-    for patch in leg.get_patches():
-        patch.set_height(15)
-        patch.set_y(-2)
-        
-    #ax.set_xticklabels(labels)
-    plt.xlabel(xAxisName)
-    plt.ylabel('Function Value (fun)')
-    plt.title(title)
-    #plt.xticks(rotation=90)
+    plt.xticks(ticks=x, labels=iterList,fontsize=22)
+    plt.yticks(fontsize=22)
+    plt.xlabel(xAxisName,fontsize=22)
+    plt.ylabel('Function Value (fun)',fontsize=22)
     plt.grid(True)
     plt.tight_layout()
     file_path = os.path.join(boxplot_save_path, title+'_bps.png')
-    fig.savefig(file_path, dpi=dpi)
+    fig.savefig(file_path,dpi=400)
 
     plt.close()
 
@@ -914,9 +902,9 @@ def getCategoryBoxplotLegend():
 
     # Patches analog zu Boxplotcolorscheme definieren
     legend_elements = [
-        Patch(facecolor='darkseagreen',hatch='oo', label='gradient-free',linewidth=3),
-        Patch(facecolor='green',hatch='xx', label='evolution-based',linewidth=3),
-        Patch(facecolor='skyblue',hatch=r'//', label='gradient-based',linewidth=3)
+        matplotlib.patches.Patch(facecolor='darkseagreen',hatch='oo', label='gradient-free',linewidth=3),
+        matplotlib.patches.Patch(facecolor='green',hatch='xx', label='evolution-based',linewidth=3),
+        matplotlib.patches.Patch(facecolor='skyblue',hatch=r'//', label='gradient-based',linewidth=3)
     ]
     ax_legend.legend(handles=legend_elements, loc='center', frameon=True, fontsize=12, markerscale=15)
     fig_legend.savefig("manual_legend.png", dpi=200, bbox_inches='tight')
@@ -1069,13 +1057,13 @@ if __name__ == "__main__":
         os.chdir("../../")
     
     # prepare data for convergence plots
-    #extract_all_data_from_json_files()
-    #fill_mean_fun_values()
+    extract_all_data_from_json_files()
+    fill_mean_fun_values()
     # make all convergence plots
-    #make_all_convergence_plots()
+    make_all_convergence_plots()
 
     # compute all relevant convergence plot info (like achieved function values, delta, STD, etc.)
-    #compute_convergence_plot_information()
+    compute_convergence_plot_information()
 
     # makes boxplots for different bounds values (preliminary tests)
     make_bounds_boxplots()
@@ -1084,3 +1072,4 @@ if __name__ == "__main__":
     # makeCategoryBoxplots('s_rank')
     # makeCategoryBoxplots('data_type')
     # makeCategoryBoxplots('num_data_points')
+    # getCategoryBoxplotLegend()
